@@ -1,5 +1,6 @@
 
-import { useState } from "react";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import MainLayout from "@/layouts/MainLayout";
 import PredictionResult from "@/components/PredictionResult";
 import PatientSummary from "@/components/PatientSummary";
@@ -7,49 +8,29 @@ import RecommendationSection from "@/components/RecommendationSection";
 import { Button } from "@/components/ui/button";
 import { Download, Share2, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { usePatientData } from "@/contexts/PatientDataContext";
 
 const PredictionsPage = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { predictionResult, patientData } = usePatientData();
   
-  // This would normally come from an API or state management
-  // Here we're using mock data for demonstration
-  const [predictionData] = useState({
-    risk: 75,
-    confidence: 89,
-    predictedOutcome: "High Risk" as const,
-    keyFactors: [
-      "History of hypertension and diabetes",
-      "Elevated respiratory rate (28 bpm)",
-      "Length of ICU stay (10 days)",
-      "Required ventilator support",
-      "Age (72 years)"
-    ],
-    patientSummary: {
-      name: "John Doe",
-      age: 72,
-      gender: "Male",
-      vitalSigns: [
-        { name: "Heart Rate", value: "98", unit: "bpm", normal: true },
-        { name: "Blood Pressure", value: "142/95", unit: "mmHg", normal: false },
-        { name: "Respiratory Rate", value: "28", unit: "bpm", normal: false },
-        { name: "Temperature", value: "37.2", unit: "°C", normal: true },
-        { name: "Oxygen Saturation", value: "94", unit: "%", normal: false },
-      ],
-      medicalHistory: [
-        { condition: "Diabetes", present: true },
-        { condition: "Hypertension", present: true },
-        { condition: "Heart Disease", present: false },
-        { condition: "Lung Disease", present: true },
-        { condition: "Kidney Disease", present: false },
-        { condition: "Cancer", present: false },
-      ],
-      primaryDiagnosis: "Respiratory Failure",
-      lengthOfStay: 10,
-      ventilatorSupport: true,
-      vasopressorUse: false,
-      surgeryDuringStay: false,
-    },
-  });
+  // If there's no prediction data, redirect to the input page
+  useEffect(() => {
+    if (!predictionResult || !patientData) {
+      toast({
+        variant: "destructive",
+        title: "No prediction data",
+        description: "Please enter patient data to generate a prediction.",
+      });
+      navigate("/input-data");
+    }
+  }, [predictionResult, patientData, navigate, toast]);
+
+  // If still loading or no data, return early
+  if (!predictionResult || !patientData) {
+    return null;
+  }
 
   const handleDownload = () => {
     toast({
@@ -99,16 +80,16 @@ const PredictionsPage = () => {
 
         <main className="medical-container mt-8 space-y-6">
           <PredictionResult
-            risk={predictionData.risk}
-            confidence={predictionData.confidence}
-            predictedOutcome={predictionData.predictedOutcome}
-            keyFactors={predictionData.keyFactors}
+            risk={predictionResult.risk}
+            confidence={predictionResult.confidence}
+            predictedOutcome={predictionResult.predictedOutcome}
+            keyFactors={predictionResult.keyFactors}
           />
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <PatientSummary {...predictionData.patientSummary} />
+            <PatientSummary {...predictionResult.patientSummary} />
             <RecommendationSection 
-              riskLevel={predictionData.risk >= 70 ? "high" : predictionData.risk >= 30 ? "moderate" : "low"} 
+              riskLevel={predictionResult.risk >= 70 ? "high" : predictionResult.risk >= 30 ? "moderate" : "low"} 
             />
           </div>
         </main>

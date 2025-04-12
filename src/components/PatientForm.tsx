@@ -18,6 +18,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useNavigate } from "react-router-dom";
+import { usePatientData, PatientData } from "@/contexts/PatientDataContext";
 
 const formSchema = z.object({
   age: z.string().min(1, { message: "Age is required" }),
@@ -47,6 +49,8 @@ const formSchema = z.object({
 const PatientForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { setPatientData, generatePrediction } = usePatientData();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -82,25 +86,67 @@ const PatientForm = () => {
         title: "File uploaded",
         description: `${e.target.files[0].name} has been uploaded. Processing data...`,
       });
-      // In a real application, this would handle file processing
+      // In a real application, this would parse the file and submit data
+      // For now, we'll just show a toast and redirect after a delay
+      setIsLoading(true);
+      setTimeout(() => {
+        // Create sample data from file upload
+        const sampleData: PatientData = {
+          age: "67",
+          gender: "male",
+          height: "175",
+          weight: "82",
+          heartRate: "88",
+          bloodPressureSystolic: "145",
+          bloodPressureDiastolic: "92",
+          respiratoryRate: "26",
+          temperature: "37.2",
+          oxygenSaturation: "94",
+          diabetes: true,
+          hypertension: true,
+          heartDisease: false,
+          lungDisease: true,
+          kidneyDisease: false,
+          cancer: false,
+          immunocompromised: false,
+          primaryDiagnosis: "respiratory",
+          lengthOfStay: "9",
+          ventilatorSupport: true,
+          vasopressorUse: false,
+          surgeryDuringStay: false,
+        };
+        
+        setPatientData(sampleData);
+        generatePrediction(sampleData);
+        
+        toast({
+          title: "Success",
+          description: "Patient data processed successfully. Redirecting to results...",
+        });
+        
+        navigate("/predictions");
+        setIsLoading(false);
+      }, 1500);
     }
   };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setIsLoading(true);
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      console.log(values);
+      
+      // Set the form data to context
+      setPatientData(values);
+      
+      // Generate prediction based on input data
+      generatePrediction(values);
       
       toast({
         title: "Success",
         description: "Patient data submitted successfully. Redirecting to results...",
       });
       
-      // In a real application, you'd submit this data to your backend
-      // and then redirect to the prediction results page
-      window.location.href = "/predictions";
+      // Redirect to the prediction results page
+      navigate("/predictions");
     } catch (error) {
       toast({
         variant: "destructive",

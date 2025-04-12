@@ -10,24 +10,27 @@ import PredictionsPage from "./pages/PredictionsPage";
 import ModelInfoPage from "./pages/ModelInfoPage";
 import ContactPage from "./pages/ContactPage";
 import NotFound from "./pages/NotFound";
+import { PatientDataProvider } from "./contexts/PatientDataContext";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/input-data" element={<InputDataPage />} />
-          <Route path="/predictions" element={<PredictionsPage />} />
-          <Route path="/model-info" element={<ModelInfoPage />} />
-          <Route path="/contact" element={<ContactPage />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <PatientDataProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/input-data" element={<InputDataPage />} />
+            <Route path="/predictions" element={<PredictionsPage />} />
+            <Route path="/model-info" element={<ModelInfoPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </PatientDataProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
