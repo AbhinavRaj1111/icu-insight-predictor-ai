@@ -136,9 +136,31 @@ const PatientForm = () => {
     try {
       setIsLoading(true);
       
-      // Convert form values to PatientData (ensuring all required properties are present)
+      // Create a PatientData object from form values
+      // Since we're using zod schema validation, all fields are guaranteed to have values
       const patientData: PatientData = {
-        ...values
+        age: values.age,
+        gender: values.gender,
+        height: values.height,
+        weight: values.weight,
+        heartRate: values.heartRate,
+        bloodPressureSystolic: values.bloodPressureSystolic,
+        bloodPressureDiastolic: values.bloodPressureDiastolic,
+        respiratoryRate: values.respiratoryRate,
+        temperature: values.temperature,
+        oxygenSaturation: values.oxygenSaturation,
+        diabetes: values.diabetes,
+        hypertension: values.hypertension,
+        heartDisease: values.heartDisease,
+        lungDisease: values.lungDisease,
+        kidneyDisease: values.kidneyDisease,
+        cancer: values.cancer,
+        immunocompromised: values.immunocompromised,
+        primaryDiagnosis: values.primaryDiagnosis,
+        lengthOfStay: values.lengthOfStay,
+        ventilatorSupport: values.ventilatorSupport,
+        vasopressorUse: values.vasopressorUse,
+        surgeryDuringStay: values.surgeryDuringStay
       };
       
       // Set the form data to context
