@@ -46,13 +46,15 @@ const formSchema = z.object({
   surgeryDuringStay: z.boolean().default(false),
 });
 
+type FormValues = z.infer<typeof formSchema>;
+
 const PatientForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { setPatientData, generatePrediction } = usePatientData();
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       age: "",
@@ -130,15 +132,20 @@ const PatientForm = () => {
     }
   };
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: FormValues) => {
     try {
       setIsLoading(true);
       
+      // Convert form values to PatientData (ensuring all required properties are present)
+      const patientData: PatientData = {
+        ...values
+      };
+      
       // Set the form data to context
-      setPatientData(values);
+      setPatientData(patientData);
       
       // Generate prediction based on input data
-      generatePrediction(values);
+      generatePrediction(patientData);
       
       toast({
         title: "Success",
