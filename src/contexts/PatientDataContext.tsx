@@ -1,5 +1,6 @@
 
 import { createContext, useContext, useState, ReactNode } from "react";
+import { samplePatients } from "../data/samplePatients";
 
 // Define the types for patient data
 export interface PatientData {
@@ -58,6 +59,10 @@ interface PatientDataContextType {
   predictionResult: PredictionResult | null;
   setPatientData: (data: PatientData) => void;
   generatePrediction: (data: PatientData) => PredictionResult;
+  loadSamplePatient: (id: string) => void;
+  isAuthenticated: boolean;
+  login: (email: string, password: string) => boolean;
+  logout: () => void;
 }
 
 const PatientDataContext = createContext<PatientDataContextType | undefined>(undefined);
@@ -65,6 +70,7 @@ const PatientDataContext = createContext<PatientDataContextType | undefined>(und
 export function PatientDataProvider({ children }: { children: ReactNode }) {
   const [patientData, setPatientData] = useState<PatientData | null>(null);
   const [predictionResult, setPredictionResult] = useState<PredictionResult | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const generatePrediction = (data: PatientData): PredictionResult => {
     // In a real application, this would call an ML model API
@@ -204,13 +210,40 @@ export function PatientDataProvider({ children }: { children: ReactNode }) {
     return result;
   };
 
+  // Function to load sample patient data
+  const loadSamplePatient = (id: string) => {
+    const samplePatient = samplePatients.find(patient => patient.id === id);
+    if (samplePatient) {
+      setPatientData(samplePatient.data);
+      generatePrediction(samplePatient.data);
+    }
+  };
+
+  // Admin authentication
+  const login = (email: string, password: string): boolean => {
+    // Simple authentication for demonstration
+    if (email === "abhinavraj5025@gmail.com" && password === "123456") {
+      setIsAuthenticated(true);
+      return true;
+    }
+    return false;
+  };
+
+  const logout = () => {
+    setIsAuthenticated(false);
+  };
+
   return (
     <PatientDataContext.Provider
       value={{
         patientData,
         predictionResult,
         setPatientData,
-        generatePrediction
+        generatePrediction,
+        loadSamplePatient,
+        isAuthenticated,
+        login,
+        logout
       }}
     >
       {children}

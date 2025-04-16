@@ -10,6 +10,7 @@ import PredictionsPage from "./pages/PredictionsPage";
 import ModelInfoPage from "./pages/ModelInfoPage";
 import ContactPage from "./pages/ContactPage";
 import NotFound from "./pages/NotFound";
+import AdminLoginPage from "./pages/AdminLoginPage";
 import { PatientDataProvider } from "./contexts/PatientDataContext";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/predictions" element={<PredictionsPage />} />
             <Route path="/model-info" element={<ModelInfoPage />} />
             <Route path="/contact" element={<ContactPage />} />
+            <Route path="/admin" element={<AdminLoginPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
