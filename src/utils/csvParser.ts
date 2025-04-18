@@ -41,6 +41,24 @@ export const parseCSV = (csvContent: string): CSVPatientData[] => {
       patientData[header] = values[index] || "";
     });
     
+    // Ensure all required fields of CSVPatientData are present, using type assertion
+    // only after ensuring the object matches the expected structure
+    const requiredFields: (keyof CSVPatientData)[] = [
+      'age', 'gender', 'height', 'weight', 'heartRate', 
+      'bloodPressureSystolic', 'bloodPressureDiastolic', 'respiratoryRate', 
+      'temperature', 'oxygenSaturation', 'diabetes', 'hypertension', 
+      'heartDisease', 'lungDisease', 'kidneyDisease', 'cancer', 
+      'immunocompromised', 'primaryDiagnosis', 'lengthOfStay', 
+      'ventilatorSupport', 'vasopressorUse', 'surgeryDuringStay'
+    ];
+    
+    // Set default empty string for any missing fields
+    requiredFields.forEach(field => {
+      if (patientData[field] === undefined) {
+        patientData[field] = "";
+      }
+    });
+    
     return patientData as CSVPatientData;
   });
 };
