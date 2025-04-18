@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
 import { usePatientData, PatientData } from "@/contexts/PatientDataContext";
+import { parseCSV, convertCSVToPatientData } from "@/utils/csvParser";
 
 const formSchema = z.object({
   age: z.string().min(1, { message: "Age is required" }),
@@ -84,51 +85,79 @@ const PatientForm = () => {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      
+      // Check if it's a CSV file
+      if (file.type !== "text/csv" && !file.name.endsWith('.csv')) {
+        toast({
+          variant: "destructive",
+          title: "Invalid file type",
+          description: "Please upload a CSV file.",
+        });
+        return;
+      }
+
       toast({
         title: "File uploaded",
-        description: `${e.target.files[0].name} has been uploaded. Processing data...`,
+        description: `${file.name} has been uploaded. Processing data...`,
       });
-      // In a real application, this would parse the file and submit data
-      // For now, we'll just show a toast and redirect after a delay
+      
       setIsLoading(true);
-      setTimeout(() => {
-        // Create sample data from file upload
-        const sampleData: PatientData = {
-          age: "67",
-          gender: "male",
-          height: "175",
-          weight: "82",
-          heartRate: "88",
-          bloodPressureSystolic: "145",
-          bloodPressureDiastolic: "92",
-          respiratoryRate: "26",
-          temperature: "37.2",
-          oxygenSaturation: "94",
-          diabetes: true,
-          hypertension: true,
-          heartDisease: false,
-          lungDisease: true,
-          kidneyDisease: false,
-          cancer: false,
-          immunocompromised: false,
-          primaryDiagnosis: "respiratory",
-          lengthOfStay: "9",
-          ventilatorSupport: true,
-          vasopressorUse: false,
-          surgeryDuringStay: false,
-        };
-        
-        setPatientData(sampleData);
-        generatePrediction(sampleData);
-        
+      
+      // Read the file content
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          if (event.target?.result) {
+            // Parse CSV data
+            const csvContent = event.target.result as string;
+            const parsedData = parseCSV(csvContent);
+            
+            if (parsedData.length === 0) {
+              throw new Error("No data found in the CSV file.");
+            }
+            
+            // Use the first row of data
+            const patientData = convertCSVToPatientData(parsedData[0]);
+            
+            // Set form values
+            Object.entries(patientData).forEach(([key, value]) => {
+              form.setValue(key as any, value);
+            });
+            
+            // Set patient data and generate prediction
+            setPatientData(patientData);
+            generatePrediction(patientData);
+            
+            toast({
+              title: "Success",
+              description: "Patient data processed successfully. Redirecting to results...",
+            });
+            
+            navigate("/predictions");
+          }
+        } catch (error) {
+          console.error("CSV parsing error:", error);
+          toast({
+            variant: "destructive",
+            title: "Error processing CSV",
+            description: "The CSV file format is invalid or missing required fields.",
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      
+      reader.onerror = () => {
         toast({
-          title: "Success",
-          description: "Patient data processed successfully. Redirecting to results...",
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to read the file.",
         });
-        
-        navigate("/predictions");
         setIsLoading(false);
-      }, 1500);
+      };
+      
+      reader.readAsText(file);
     }
   };
 
