@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Bot, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { analyzeCSVData } from "@/utils/csvParser";
+import { analyzeCSVData, parseCSV, getCSVSampleData, CSVPatientData } from "@/utils/csvParser";
 import { usePatientData } from "@/contexts/PatientDataContext";
 
 interface Message {
