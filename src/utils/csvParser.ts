@@ -115,6 +115,60 @@ export const convertCSVToPatientData = (csvData: CSVPatientData) => {
   };
 };
 
+// Analyze CSV data and provide insights
+export const analyzeCSVData = (csvData: CSVPatientData[]): string[] => {
+  if (!csvData || csvData.length === 0) {
+    return ["No data available for analysis."];
+  }
+
+  const insights: string[] = [];
+  
+  // Patient demographics analysis
+  const ageSum = csvData.reduce((sum, patient) => sum + (parseInt(patient.age) || 0), 0);
+  const avgAge = ageSum / csvData.length;
+  insights.push(`Average patient age: ${avgAge.toFixed(1)} years`);
+  
+  // Gender distribution
+  const maleCount = csvData.filter(p => p.gender.toLowerCase() === 'male').length;
+  const femaleCount = csvData.filter(p => p.gender.toLowerCase() === 'female').length;
+  insights.push(`Gender distribution: ${maleCount} male patients (${(maleCount/csvData.length*100).toFixed(1)}%), ${femaleCount} female patients (${(femaleCount/csvData.length*100).toFixed(1)}%)`);
+  
+  // Conditions analysis
+  const diabetesCount = csvData.filter(p => p.diabetes === "true" || p.diabetes === "1").length;
+  const heartDiseaseCount = csvData.filter(p => p.heartDisease === "true" || p.heartDisease === "1").length;
+  insights.push(`${diabetesCount} patients (${(diabetesCount/csvData.length*100).toFixed(1)}%) have diabetes`);
+  insights.push(`${heartDiseaseCount} patients (${(heartDiseaseCount/csvData.length*100).toFixed(1)}%) have heart disease`);
+  
+  // Length of stay analysis
+  const losSum = csvData.reduce((sum, patient) => sum + (parseInt(patient.lengthOfStay) || 0), 0);
+  const avgLOS = losSum / csvData.length;
+  insights.push(`Average length of stay: ${avgLOS.toFixed(1)} days`);
+  
+  // Ventilator and vasopressor usage
+  const ventCount = csvData.filter(p => p.ventilatorSupport === "true" || p.ventilatorSupport === "1").length;
+  const vasoCount = csvData.filter(p => p.vasopressorUse === "true" || p.vasopressorUse === "1").length;
+  insights.push(`${ventCount} patients (${(ventCount/csvData.length*100).toFixed(1)}%) required ventilator support`);
+  insights.push(`${vasoCount} patients (${(vasoCount/csvData.length*100).toFixed(1)}%) required vasopressors`);
+  
+  // Primary diagnosis distribution
+  const diagnoses = csvData.reduce((acc, patient) => {
+    const diagnosis = patient.primaryDiagnosis;
+    acc[diagnosis] = (acc[diagnosis] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  
+  const diagnosisInsights = Object.entries(diagnoses)
+    .sort((a, b) => b[1] - a[1])
+    .map(([diagnosis, count]) => 
+      `${diagnosis}: ${count} patients (${(count/csvData.length*100).toFixed(1)}%)`
+    );
+  
+  insights.push("Primary diagnosis distribution:");
+  insights.push(...diagnosisInsights);
+  
+  return insights;
+};
+
 // Sample CSV data for testing
 export const getCSVSampleData = (): string => {
   return `age,gender,height,weight,heartRate,bloodPressureSystolic,bloodPressureDiastolic,respiratoryRate,temperature,oxygenSaturation,diabetes,hypertension,heartDisease,lungDisease,kidneyDisease,cancer,immunocompromised,primaryDiagnosis,lengthOfStay,ventilatorSupport,vasopressorUse,surgeryDuringStay
@@ -124,3 +178,4 @@ export const getCSVSampleData = (): string => {
 63,female,165,74,85,142,88,22,37.0,95,true,false,false,true,false,false,false,respiratory,7,true,false,false
 55,male,178,88,76,128,82,20,36.9,97,false,true,false,false,false,false,false,sepsis,10,true,true,false`;
 };
+

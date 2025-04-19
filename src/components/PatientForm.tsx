@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,7 +19,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
 import { usePatientData, PatientData } from "@/contexts/PatientDataContext";
-import { parseCSV, convertCSVToPatientData } from "@/utils/csvParser";
+import { parseCSV, convertCSVToPatientData, analyzeCSVData } from "@/utils/csvParser";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle, FileCheck } from "lucide-react";
 
 const formSchema = z.object({
   age: z.string().min(1, { message: "Age is required" }),
@@ -51,6 +52,8 @@ type FormValues = z.infer<typeof formSchema>;
 
 const PatientForm = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [fileUploaded, setFileUploaded] = useState(false);
+  const [csvAnalysis, setCsvAnalysis] = useState<string[]>([]);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { setPatientData, generatePrediction } = usePatientData();
@@ -117,6 +120,10 @@ const PatientForm = () => {
               throw new Error("No data found in the CSV file.");
             }
             
+            // Generate analysis from the CSV data
+            const analysis = analyzeCSVData(parsedData);
+            setCsvAnalysis(analysis);
+            
             // Use the first row of data
             const patientData = convertCSVToPatientData(parsedData[0]);
             
@@ -129,12 +136,12 @@ const PatientForm = () => {
             setPatientData(patientData);
             generatePrediction(patientData);
             
+            setFileUploaded(true);
+            
             toast({
               title: "Success",
-              description: "Patient data processed successfully. Redirecting to results...",
+              description: "Patient data processed successfully. You can now view the analysis or proceed to results.",
             });
-            
-            navigate("/predictions");
           }
         } catch (error) {
           console.error("CSV parsing error:", error);
@@ -159,6 +166,10 @@ const PatientForm = () => {
       
       reader.readAsText(file);
     }
+  };
+
+  const handleViewResults = () => {
+    navigate("/predictions");
   };
 
   const onSubmit = async (values: FormValues) => {
@@ -222,28 +233,59 @@ const PatientForm = () => {
         <h3 className="text-lg font-medium mb-4">Upload Patient Data File</h3>
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
           <Upload className="mx-auto h-12 w-12 text-gray-400" />
-          <p className="mt-1 text-sm text-gray-600">Upload a CSV or Excel file with patient data</p>
+          <p className="mt-1 text-sm text-gray-600">Upload a CSV file with patient data</p>
           <input
             type="file"
             id="file-upload"
             className="hidden"
-            accept=".csv,.xlsx,.xls"
+            accept=".csv"
             onChange={handleFileUpload}
           />
           <Button
             variant="outline"
             className="mt-2"
             onClick={() => document.getElementById("file-upload")?.click()}
+            disabled={isLoading}
           >
-            Select File
+            {isLoading ? "Processing..." : "Select File"}
           </Button>
         </div>
+        
+        {fileUploaded && csvAnalysis.length > 0 && (
+          <div className="mt-4">
+            <Alert className="bg-green-50 border-green-200">
+              <FileCheck className="h-4 w-4 text-green-600" />
+              <AlertTitle className="text-green-800">CSV File Processed Successfully</AlertTitle>
+              <AlertDescription>
+                <div className="mt-2">
+                  <p className="font-semibold mb-2">CSV Analysis Results:</p>
+                  <ul className="list-disc pl-5 space-y-1 text-sm">
+                    {csvAnalysis.slice(0, 5).map((insight, index) => (
+                      <li key={index}>{insight}</li>
+                    ))}
+                    {csvAnalysis.length > 5 && (
+                      <li className="text-medical-600 font-medium">
+                        ...and {csvAnalysis.length - 5} more insights available
+                      </li>
+                    )}
+                  </ul>
+                  <div className="mt-3">
+                    <Button onClick={handleViewResults} className="w-full">
+                      View Prediction Results
+                    </Button>
+                  </div>
+                </div>
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
       </div>
 
       <div className="bg-white shadow-md rounded-lg p-6">
         <h3 className="text-lg font-medium mb-4">Enter Patient Data Manually</h3>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* ... keep existing code (demographics, vital signs, etc.) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Demographics */}
               <div className="space-y-4">
