@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { Bot, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -288,22 +289,5 @@ Recommended follow-up: ${patientData.diabetes || patientData.heartDisease ? 'Clo
     </div>
   );
 };
-
-// Helper function imported from csvParser but included here to simplify the example
-function parseCSV(csvContent: string) {
-  const lines = csvContent.trim().split("\n");
-  const headers = lines[0].split(",").map(h => h.trim());
-  
-  return lines.slice(1).map(line => {
-    const values = line.split(",").map(v => v.trim());
-    const data: Record<string, string> = {};
-    
-    headers.forEach((header, i) => {
-      data[header] = values[i] || "";
-    });
-    
-    return data;
-  });
-}
 
 export default AIAssistant;
