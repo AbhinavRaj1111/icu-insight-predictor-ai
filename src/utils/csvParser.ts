@@ -41,8 +41,7 @@ export const parseCSV = (csvContent: string): CSVPatientData[] => {
       patientData[header] = values[index] || "";
     });
     
-    // Ensure all required fields of CSVPatientData are present, using type assertion
-    // only after ensuring the object matches the expected structure
+    // Ensure all required fields of CSVPatientData are present
     const requiredFields: (keyof CSVPatientData)[] = [
       'age', 'gender', 'height', 'weight', 'heartRate', 
       'bloodPressureSystolic', 'bloodPressureDiastolic', 'respiratoryRate', 
@@ -59,7 +58,33 @@ export const parseCSV = (csvContent: string): CSVPatientData[] => {
       }
     });
     
-    return patientData as CSVPatientData;
+    // Create a new object that explicitly matches CSVPatientData interface
+    const typedPatientData: CSVPatientData = {
+      age: patientData.age || '',
+      gender: patientData.gender || '',
+      height: patientData.height || '',
+      weight: patientData.weight || '',
+      heartRate: patientData.heartRate || '',
+      bloodPressureSystolic: patientData.bloodPressureSystolic || '',
+      bloodPressureDiastolic: patientData.bloodPressureDiastolic || '',
+      respiratoryRate: patientData.respiratoryRate || '',
+      temperature: patientData.temperature || '',
+      oxygenSaturation: patientData.oxygenSaturation || '',
+      diabetes: patientData.diabetes || '',
+      hypertension: patientData.hypertension || '',
+      heartDisease: patientData.heartDisease || '',
+      lungDisease: patientData.lungDisease || '',
+      kidneyDisease: patientData.kidneyDisease || '',
+      cancer: patientData.cancer || '',
+      immunocompromised: patientData.immunocompromised || '',
+      primaryDiagnosis: patientData.primaryDiagnosis || '',
+      lengthOfStay: patientData.lengthOfStay || '',
+      ventilatorSupport: patientData.ventilatorSupport || '',
+      vasopressorUse: patientData.vasopressorUse || '',
+      surgeryDuringStay: patientData.surgeryDuringStay || ''
+    };
+    
+    return typedPatientData;
   });
 };
 
