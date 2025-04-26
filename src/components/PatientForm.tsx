@@ -230,7 +230,8 @@ const PatientForm = () => {
         surgeryDuringStay: values.surgeryDuringStay,
         renalDisease: values.kidneyDisease,  // Map kidney disease to renal disease
         vasopressors: values.vasopressorUse, // Map vasopressor use to vasopressors
-        previousICUAdmission: false // Default value since not in the form
+        previousICUAdmission: false, // Default value since not in the form
+        dialysis: false // Add missing dialysis property with default value
       };
       
       // Set the form data to context

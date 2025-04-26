@@ -34,6 +34,30 @@ const PredictionsPage = () => {
     return null;
   }
 
+  // Convert risk level string to the required type
+  const getRiskLevel = (): "High Risk" | "Moderate Risk" | "Low Risk" => {
+    if (predictionResult.risk >= 70) return "High Risk";
+    if (predictionResult.risk >= 30) return "Moderate Risk";
+    return "Low Risk";
+  };
+
+  // Create vitalSigns array for PatientSummary
+  const vitalSigns = predictionResult.patientSummary.vitals.map(vital => {
+    const [value, unit] = vital.value.split(' ');
+    return {
+      name: vital.key,
+      value,
+      unit: unit || '',
+      normal: vital.status !== "warning" && vital.status !== "critical"
+    };
+  });
+
+  // Create medicalHistory array for PatientSummary
+  const medicalHistory = predictionResult.patientSummary.comorbidities.map(condition => ({
+    condition,
+    present: true
+  }));
+
   const handleDownload = async () => {
     toast({
       title: "Preparing download",
@@ -135,12 +159,23 @@ const PredictionsPage = () => {
           <PredictionResult
             risk={predictionResult.risk}
             confidence={predictionResult.confidence}
-            predictedOutcome={predictionResult.predictedOutcome}
+            predictedOutcome={getRiskLevel()}
             keyFactors={predictionResult.keyFactors}
           />
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <PatientSummary {...predictionResult.patientSummary} />
+            <PatientSummary
+              name={`Patient ${patientData.id.substring(0, 8)}`}
+              age={patientData.age}
+              gender={patientData.gender}
+              vitalSigns={vitalSigns}
+              medicalHistory={medicalHistory}
+              primaryDiagnosis={predictionResult.patientSummary.primaryDiagnosis}
+              lengthOfStay={predictionResult.patientSummary.lengthOfStay}
+              ventilatorSupport={patientData.ventilatorSupport}
+              vasopressorUse={patientData.vasopressors}
+              surgeryDuringStay={patientData.surgeryDuringStay || false}
+            />
             <RecommendationSection 
               riskLevel={predictionResult.risk >= 70 ? "high" : predictionResult.risk >= 30 ? "moderate" : "low"} 
             />

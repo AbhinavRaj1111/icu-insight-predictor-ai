@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState } from "react";
 import { useAuth } from "./AuthContext";
 
@@ -59,9 +58,9 @@ interface PatientDataContextType {
   clearPatientData: () => void;
   loadSamplePatient: (id: string) => void;
   isAuthenticated: boolean;
-  login?: (email: string, password: string) => boolean;
-  predictionResult?: PredictionResult | null;
-  generatePrediction?: (data: PatientData) => void;
+  login: (email: string, password: string) => boolean;
+  predictionResult: PredictionResult | null;
+  generatePrediction: (data: PatientData) => void;
 }
 
 const PatientDataContext = createContext<PatientDataContextType | undefined>(undefined);

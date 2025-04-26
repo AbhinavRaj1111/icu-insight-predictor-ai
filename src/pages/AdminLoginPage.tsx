@@ -19,7 +19,7 @@ const AdminLoginPage = () => {
   const { login } = usePatientData();
   const { login: authLogin } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
@@ -38,27 +38,42 @@ const AdminLoginPage = () => {
     const loginFn = login || authLogin;
     let success = false;
     
-    if (loginFn) {
-      success = loginFn(email, password);
-    }
-    
-    setTimeout(() => {
-      setIsLoading(false);
-      
-      if (success) {
-        toast({
-          title: "Login successful",
-          description: "You have successfully logged in as admin.",
-        });
-        navigate("/input-data");
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Login failed",
-          description: "Invalid email or password. Please try again.",
-        });
+    try {
+      if (loginFn) {
+        // Handle both synchronous and asynchronous login functions
+        const result = loginFn(email, password);
+        if (result instanceof Promise) {
+          success = await result;
+        } else {
+          success = result;
+        }
       }
-    }, 1000); // Simulated delay for login process
+      
+      setTimeout(() => {
+        setIsLoading(false);
+        
+        if (success) {
+          toast({
+            title: "Login successful",
+            description: "You have successfully logged in as admin.",
+          });
+          navigate("/input-data");
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Login failed",
+            description: "Invalid email or password. Please try again.",
+          });
+        }
+      }, 1000); // Simulated delay for login process
+    } catch (error) {
+      setIsLoading(false);
+      toast({
+        variant: "destructive",
+        title: "Login error",
+        description: "An error occurred during login. Please try again.",
+      });
+    }
   };
 
   return (
