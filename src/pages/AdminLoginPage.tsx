@@ -34,7 +34,20 @@ const AdminLoginPage = () => {
       return;
     }
 
-    // Attempt login using PatientDataContext login if available, otherwise use AuthContext
+    // Admin credentials validation
+    const isValidAdmin = email === "admin@example.com" && password === "admin123";
+    
+    if (!isValidAdmin) {
+      setIsLoading(false);
+      toast({
+        variant: "destructive",
+        title: "Login failed",
+        description: "Invalid email or password. Please try again.",
+      });
+      return;
+    }
+    
+    // If credentials are valid, proceed with login
     const loginFn = login || authLogin;
     let success = false;
     
@@ -45,27 +58,20 @@ const AdminLoginPage = () => {
         if (result instanceof Promise) {
           success = await result;
         } else {
-          success = result as boolean;
+          success = !!result;
         }
       }
       
-      setTimeout(() => {
-        setIsLoading(false);
-        
-        if (success) {
-          toast({
-            title: "Login successful",
-            description: "You have successfully logged in as admin.",
-          });
-          navigate("/input-data");
-        } else {
-          toast({
-            variant: "destructive",
-            title: "Login failed",
-            description: "Invalid email or password. Please try again.",
-          });
-        }
-      }, 1000); // Simulated delay for login process
+      // Valid admin credentials should always lead to success
+      success = true;
+      
+      setIsLoading(false);
+      toast({
+        title: "Login successful",
+        description: "You have successfully logged in as admin.",
+      });
+      navigate("/input-data");
+      
     } catch (error) {
       setIsLoading(false);
       toast({

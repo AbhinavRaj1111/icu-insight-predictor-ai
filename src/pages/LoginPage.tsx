@@ -7,17 +7,34 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { LogIn } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { login, isLoading } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Simple validation
+    if (!email || !password) {
+      toast({
+        variant: "destructive",
+        title: "Required fields missing",
+        description: "Both email and password are required.",
+      });
+      return;
+    }
+    
     const success = await login(email, password);
     if (success) {
+      toast({
+        title: "Login successful",
+        description: "Welcome back to ICU Insight!",
+      });
       navigate("/");
     }
   };
@@ -77,6 +94,12 @@ const LoginPage = () => {
                 <Link to="/signup" className="text-medical-600 hover:underline">
                   Create one
                 </Link>
+              </div>
+              
+              <div className="text-sm text-center text-gray-500 mt-2 pt-2 border-t border-gray-200">
+                <p>Demo Account:</p>
+                <p>Email: user@example.com</p>
+                <p>Password: password123</p>
               </div>
             </CardFooter>
           </form>

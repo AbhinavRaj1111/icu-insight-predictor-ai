@@ -50,7 +50,7 @@ const UserAccountMenu = () => {
         <div className="h-8 w-8 rounded-full bg-medical-100 flex items-center justify-center">
           <UserIcon className="h-5 w-5 text-medical-600" />
         </div>
-        <span className="hidden md:inline-block">{user?.name}</span>
+        <span className="hidden md:inline-block">{user?.name || user?.email?.split('@')[0]}</span>
       </Button>
 
       {showDropdown && (
