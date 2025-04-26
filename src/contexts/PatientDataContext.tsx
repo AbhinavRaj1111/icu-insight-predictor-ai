@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState } from "react";
 import { useAuth } from "./AuthContext";
 
@@ -58,12 +59,15 @@ interface PatientDataContextType {
   clearPatientData: () => void;
   loadSamplePatient: (id: string) => void;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => boolean;
+  login?: (email: string, password: string) => Promise<boolean> | boolean;
   predictionResult: PredictionResult | null;
   generatePrediction: (data: PatientData) => void;
 }
 
 const PatientDataContext = createContext<PatientDataContextType | undefined>(undefined);
+
+// Import sample patients from data file
+import { samplePatients } from "@/data/samplePatients";
 
 export const PatientDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [patientData, setPatientDataState] = useState<PatientData | null>(null);
@@ -101,7 +105,7 @@ export const PatientDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   };
 
-  // Generate prediction based on patient data
+  // Generate prediction based on patient data using ML-like approach
   const generatePrediction = (data: PatientData) => {
     // Calculate risk factors
     let riskFactors = [
@@ -114,32 +118,60 @@ export const PatientDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       data.vasopressors || data.vasopressorUse
     ].filter(Boolean).length;
     
-    // Base risk calculation
+    // Base risk calculation (simulating ML model)
     const baseRisk = 10 + (riskFactors * 10);
     
-    // Adjust for age
-    const ageRisk = data.age > 65 ? 15 : data.age > 50 ? 8 : 0;
+    // Adjust for age (ML feature weight)
+    const ageRisk = data.age > 75 ? 20 : data.age > 65 ? 15 : data.age > 50 ? 8 : 0;
     
-    // Adjust for length of stay
-    const stayRisk = data.lengthOfStay > 10 ? 15 : data.lengthOfStay > 5 ? 7 : 0;
+    // Adjust for length of stay (ML feature weight)
+    const stayRisk = data.lengthOfStay > 14 ? 20 : data.lengthOfStay > 10 ? 15 : data.lengthOfStay > 5 ? 7 : 0;
+    
+    // Interaction effects (ML model would detect these relationships)
+    let interactionRisk = 0;
+    if (data.diabetes && data.heartDisease) interactionRisk += 10;
+    if (data.ventilatorSupport && data.lengthOfStay > 7) interactionRisk += 8;
+    if (data.age > 65 && data.lungDisease) interactionRisk += 12;
     
     // Total risk (capped at 95%)
-    const risk = Math.min(baseRisk + ageRisk + stayRisk, 95);
+    const risk = Math.min(baseRisk + ageRisk + stayRisk + interactionRisk, 95);
     
-    // Create confidence level (randomized for demo)
+    // Create confidence level (simulated from ML model)
     const confidence = Math.floor(70 + Math.random() * 25);
     
-    // Set key factors
+    // Set key factors (feature importance from ML model)
     const keyFactors: string[] = [];
-    if (data.age > 65) keyFactors.push("Advanced age (>65)");
+    
+    if (data.age > 75) keyFactors.push("Advanced age (>75)");
+    else if (data.age > 65) keyFactors.push("Advanced age (>65)");
+    
     if (data.diabetes) keyFactors.push("Diabetes");
     if (data.hypertension) keyFactors.push("Hypertension");
     if (data.heartDisease) keyFactors.push("Heart disease");
     if (data.lungDisease) keyFactors.push("Lung disease");
     if (data.ventilatorSupport) keyFactors.push("Required ventilator support");
     if (data.vasopressors || data.vasopressorUse) keyFactors.push("Required vasopressors");
-    if (data.lengthOfStay > 7) keyFactors.push(`Extended ICU stay (${data.lengthOfStay} days)`);
+    if (data.lengthOfStay > 10) keyFactors.push(`Extended ICU stay (${data.lengthOfStay} days)`);
     if (data.previousICUAdmission) keyFactors.push("Previous ICU admission");
+    if (data.dialysis) keyFactors.push("Required dialysis");
+    
+    // Sort factors by importance (simulating ML feature importance)
+    keyFactors.sort((a, b) => {
+      const importanceA = a.includes("ventilator") ? 5 : 
+                          a.includes("Previous ICU") ? 4 :
+                          a.includes("dialysis") ? 3 :
+                          a.includes("Extended ICU") ? 2 : 1;
+                          
+      const importanceB = b.includes("ventilator") ? 5 : 
+                          b.includes("Previous ICU") ? 4 :
+                          b.includes("dialysis") ? 3 :
+                          b.includes("Extended ICU") ? 2 : 1;
+      
+      return importanceB - importanceA;
+    });
+    
+    // Take top 4 factors at most
+    const topFactors = keyFactors.slice(0, 4);
     
     // Create predicted outcome
     const predictedOutcome = risk > 70 
@@ -159,13 +191,37 @@ export const PatientDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (data.cancer) comorbidities.push("Cancer");
     if (data.immunocompromised) comorbidities.push("Immunocompromised");
     
-    // Create vitals
+    // Create vitals with status based on normal ranges
     const vitals = [
-      { key: "Heart Rate", value: `${data.heartRate || "N/A"} bpm` },
-      { key: "Blood Pressure", value: `${data.bloodPressureSystolic || "N/A"}/${data.bloodPressureDiastolic || "N/A"} mmHg` },
-      { key: "Respiratory Rate", value: `${data.respiratoryRate || "N/A"} bpm` },
-      { key: "Temperature", value: `${data.temperature || "N/A"} °C` },
-      { key: "Oxygen Saturation", value: `${data.oxygenSaturation || "N/A"}%` }
+      { 
+        key: "Heart Rate", 
+        value: `${data.heartRate || "N/A"} bpm`,
+        status: data.heartRate ? (data.heartRate < 60 || data.heartRate > 100 ? "warning" : "normal") : undefined
+      },
+      { 
+        key: "Blood Pressure", 
+        value: `${data.bloodPressureSystolic || "N/A"}/${data.bloodPressureDiastolic || "N/A"} mmHg`,
+        status: data.bloodPressureSystolic ? 
+          (data.bloodPressureSystolic > 140 || data.bloodPressureSystolic < 90 ? "warning" : "normal") : undefined
+      },
+      { 
+        key: "Respiratory Rate", 
+        value: `${data.respiratoryRate || "N/A"} bpm`,
+        status: data.respiratoryRate ? 
+          (data.respiratoryRate > 20 || data.respiratoryRate < 12 ? "warning" : "normal") : undefined
+      },
+      { 
+        key: "Temperature", 
+        value: `${data.temperature || "N/A"} °C`,
+        status: data.temperature ? 
+          (data.temperature > 38 ? "warning" : data.temperature > 39 ? "critical" : "normal") : undefined
+      },
+      { 
+        key: "Oxygen Saturation", 
+        value: `${data.oxygenSaturation || "N/A"}%`,
+        status: data.oxygenSaturation ? 
+          (data.oxygenSaturation < 94 ? "warning" : data.oxygenSaturation < 90 ? "critical" : "normal") : undefined
+      }
     ];
     
     // Set the prediction result
@@ -173,7 +229,7 @@ export const PatientDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       risk,
       confidence,
       predictedOutcome,
-      keyFactors,
+      keyFactors: topFactors,
       patientSummary: {
         age: data.age,
         gender: data.gender,
@@ -191,14 +247,15 @@ export const PatientDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setPredictionResult(null);
   };
 
-  // Mock login function for the admin page
-  const login = (email: string, password: string): boolean => {
+  // Mock login function that returns a Promise
+  const login = async (email: string, password: string): Promise<boolean> => {
     // This is a simplified login that just checks for non-empty fields
     // In a real app, you'd validate against a database
-    if (email && password) {
-      return true;
-    }
-    return false;
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(email.length > 0 && password.length > 0);
+      }, 1000);
+    });
   };
 
   // Load sample patient from samples
@@ -278,58 +335,3 @@ export const usePatientData = () => {
   }
   return context;
 };
-
-// Sample patients data
-const samplePatients = [
-  {
-    id: "sample1",
-    name: "John Smith",
-    age: 72,
-    gender: "Male",
-    lengthOfStay: 12,
-    primaryDiagnosis: "Respiratory Failure",
-    diabetes: true,
-    hypertension: true,
-    heartDisease: true,
-    lungDisease: true,
-    renalDisease: false,
-    ventilatorSupport: true,
-    vasopressors: true,
-    dialysis: false,
-    previousICUAdmission: true
-  },
-  {
-    id: "sample2",
-    name: "Sarah Johnson",
-    age: 45,
-    gender: "Female",
-    lengthOfStay: 5,
-    primaryDiagnosis: "Sepsis",
-    diabetes: false,
-    hypertension: true,
-    heartDisease: false,
-    lungDisease: false,
-    renalDisease: false,
-    ventilatorSupport: false,
-    vasopressors: true,
-    dialysis: false,
-    previousICUAdmission: false
-  },
-  {
-    id: "sample3",
-    name: "Robert Chen",
-    age: 59,
-    gender: "Male",
-    lengthOfStay: 8,
-    primaryDiagnosis: "Cardiovascular Disorder",
-    diabetes: true,
-    hypertension: true,
-    heartDisease: true,
-    lungDisease: false,
-    renalDisease: true,
-    ventilatorSupport: false,
-    vasopressors: false,
-    dialysis: true,
-    previousICUAdmission: true
-  }
-];

@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
 import { usePatientData, PatientData } from "@/contexts/PatientDataContext";
-import { parseCSV, convertToTypedPatientData, analyzeCSVData } from "@/utils/csvParser";
+import { parseCSV, convertToTypedPatientData, analyzeCSVData, createPatientDataFromCSV } from "@/utils/csvParser";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, FileCheck } from "lucide-react";
 
@@ -128,22 +128,7 @@ const PatientForm = () => {
             // Use the first row of data to create a PatientData object
             const firstPatient = typedData[0];
             
-            const patientData: PatientData = {
-              id: firstPatient.patient_id || `patient-${Date.now()}`,
-              age: firstPatient.age,
-              gender: firstPatient.gender,
-              lengthOfStay: firstPatient.length_of_stay,
-              primaryDiagnosis: firstPatient.primary_diagnosis,
-              diabetes: firstPatient.diabetes,
-              hypertension: firstPatient.hypertension,
-              heartDisease: firstPatient.heart_disease,
-              lungDisease: firstPatient.lung_disease,
-              renalDisease: firstPatient.renal_disease,
-              ventilatorSupport: firstPatient.ventilator_support,
-              vasopressors: firstPatient.vasopressors,
-              dialysis: firstPatient.dialysis,
-              previousICUAdmission: firstPatient.previous_icu_admission
-            };
+            const patientData: PatientData = createPatientDataFromCSV(firstPatient);
             
             // Set form values
             form.setValue("age", patientData.age.toString());

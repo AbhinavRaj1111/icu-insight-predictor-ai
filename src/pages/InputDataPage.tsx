@@ -4,7 +4,7 @@ import PatientForm from "@/components/PatientForm";
 import AIAssistant from "@/components/AIAssistant";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Database, Upload } from "lucide-react";
+import { Database, Upload, FileDown } from "lucide-react";
 import { usePatientData } from "@/contexts/PatientDataContext";
 import { samplePatients } from "@/data/samplePatients";
 import { useNavigate } from "react-router-dom";
@@ -37,6 +37,11 @@ const InputDataPage = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    
+    toast({
+      title: "Sample CSV downloaded",
+      description: "You can use this as a template for your own patient data uploads.",
+    });
   };
 
   return (
@@ -45,7 +50,7 @@ const InputDataPage = () => {
         <header className="medical-container">
           <h1 className="page-title">Patient Data Input</h1>
           <p className="page-subtitle">
-            Enter patient information to generate an ICU readmission prediction. Fill out the form below or upload a file
+            Enter patient information to generate an ICU readmission prediction using our ML model. Fill out the form below or upload a CSV file
             containing patient data.
           </p>
 
@@ -65,7 +70,7 @@ const InputDataPage = () => {
             <CardHeader>
               <CardTitle>Sample Patients</CardTitle>
               <CardDescription>
-                Load sample patient data to quickly see prediction results
+                Load sample patient data to quickly see ML prediction results
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -88,23 +93,41 @@ const InputDataPage = () => {
         </div>
 
         <div className="medical-container mt-8">
-          <Card>
+          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
             <CardHeader>
-              <CardTitle>Sample CSV Data</CardTitle>
+              <CardTitle className="flex items-center">
+                <FileDown className="mr-2 h-5 w-5" />
+                CSV Data Import
+              </CardTitle>
               <CardDescription>
-                Download a sample CSV file to see the required format
+                Download a sample CSV file or upload your patient data for ML analysis
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex justify-center">
-              <Button 
-                variant="outline" 
-                className="p-6 h-auto flex flex-col items-center justify-center space-y-2"
-                onClick={handleDownloadSampleCSV}
-              >
-                <Upload className="h-8 w-8 mb-2" />
-                <span className="font-medium">Download Sample CSV</span>
-                <span className="text-xs text-gray-500">Click to download</span>
-              </Button>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Our ML model can analyze CSV datasets to identify patterns and risk factors across multiple patients.
+                Download the sample CSV template below to see the required format.
+              </p>
+              <div className="flex justify-center">
+                <Button 
+                  variant="outline" 
+                  className="p-6 h-auto flex flex-col items-center justify-center space-y-2"
+                  onClick={handleDownloadSampleCSV}
+                >
+                  <Upload className="h-8 w-8 mb-2" />
+                  <span className="font-medium">Download Sample CSV</span>
+                  <span className="text-xs text-gray-500">15 sample patients with complete data</span>
+                </Button>
+              </div>
+              <div className="bg-white p-4 rounded-md border border-gray-200">
+                <h4 className="font-medium text-sm mb-2">Required CSV Headers:</h4>
+                <p className="text-xs text-gray-600 font-mono bg-gray-50 p-2 rounded">
+                  patient_id, age, gender, length_of_stay, primary_diagnosis, diabetes, hypertension, heart_disease, lung_disease, renal_disease, ventilator_support, vasopressors, dialysis, previous_icu_admission
+                </p>
+                <p className="text-xs text-gray-500 mt-2">
+                  Boolean values should be represented as 1 (true) or 0 (false).
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>

@@ -45,7 +45,7 @@ const AdminLoginPage = () => {
         if (result instanceof Promise) {
           success = await result;
         } else {
-          success = result;
+          success = result as boolean;
         }
       }
       
