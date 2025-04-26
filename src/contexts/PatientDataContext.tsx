@@ -196,31 +196,31 @@ export const PatientDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       { 
         key: "Heart Rate", 
         value: `${data.heartRate || "N/A"} bpm`,
-        status: data.heartRate ? (data.heartRate < 60 || data.heartRate > 100 ? "warning" : "normal") : undefined
+        status: data.heartRate ? (data.heartRate < 60 || data.heartRate > 100 ? "warning" as const : "normal" as const) : undefined
       },
       { 
         key: "Blood Pressure", 
         value: `${data.bloodPressureSystolic || "N/A"}/${data.bloodPressureDiastolic || "N/A"} mmHg`,
         status: data.bloodPressureSystolic ? 
-          (data.bloodPressureSystolic > 140 || data.bloodPressureSystolic < 90 ? "warning" : "normal") : undefined
+          (data.bloodPressureSystolic > 140 || data.bloodPressureSystolic < 90 ? "warning" as const : "normal" as const) : undefined
       },
       { 
         key: "Respiratory Rate", 
         value: `${data.respiratoryRate || "N/A"} bpm`,
         status: data.respiratoryRate ? 
-          (data.respiratoryRate > 20 || data.respiratoryRate < 12 ? "warning" : "normal") : undefined
+          (data.respiratoryRate > 20 || data.respiratoryRate < 12 ? "warning" as const : "normal" as const) : undefined
       },
       { 
         key: "Temperature", 
         value: `${data.temperature || "N/A"} °C`,
         status: data.temperature ? 
-          (data.temperature > 38 ? "warning" : data.temperature > 39 ? "critical" : "normal") : undefined
+          (data.temperature > 38 ? "warning" as const : data.temperature > 39 ? "critical" as const : "normal" as const) : undefined
       },
       { 
         key: "Oxygen Saturation", 
         value: `${data.oxygenSaturation || "N/A"}%`,
         status: data.oxygenSaturation ? 
-          (data.oxygenSaturation < 94 ? "warning" : data.oxygenSaturation < 90 ? "critical" : "normal") : undefined
+          (data.oxygenSaturation < 94 ? "warning" as const : data.oxygenSaturation < 90 ? "critical" as const : "normal" as const) : undefined
       }
     ];
     
@@ -261,20 +261,51 @@ export const PatientDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // Load sample patient from samples
   const loadSamplePatient = (id: string) => {
     // Find sample patient in the sample data
-    const samplePatient = samplePatients.find(patient => patient.id === id);
+    const sample = samplePatients.find(patient => patient.id === id);
     
-    if (samplePatient) {
+    if (sample) {
+      // Convert sample patient data to PatientData format
+      const patientData: PatientData = {
+        id: sample.id,
+        age: parseInt(sample.data.age),
+        gender: sample.data.gender,
+        lengthOfStay: parseInt(sample.data.lengthOfStay),
+        primaryDiagnosis: sample.data.primaryDiagnosis,
+        diabetes: sample.data.diabetes,
+        hypertension: sample.data.hypertension,
+        heartDisease: sample.data.heartDisease,
+        lungDisease: sample.data.lungDisease,
+        renalDisease: sample.data.kidneyDisease, // Map kidney disease to renal disease
+        ventilatorSupport: sample.data.ventilatorSupport,
+        vasopressors: sample.data.vasopressorUse, // Map vasopressor use to vasopressors
+        dialysis: false, // Default value since not in sample data
+        previousICUAdmission: false, // Default value since not in sample data
+        height: parseInt(sample.data.height),
+        weight: parseInt(sample.data.weight),
+        heartRate: parseInt(sample.data.heartRate),
+        bloodPressureSystolic: parseInt(sample.data.bloodPressureSystolic),
+        bloodPressureDiastolic: parseInt(sample.data.bloodPressureDiastolic),
+        respiratoryRate: parseInt(sample.data.respiratoryRate),
+        temperature: parseFloat(sample.data.temperature),
+        oxygenSaturation: parseInt(sample.data.oxygenSaturation),
+        kidneyDisease: sample.data.kidneyDisease,
+        cancer: sample.data.cancer,
+        immunocompromised: sample.data.immunocompromised,
+        vasopressorUse: sample.data.vasopressorUse,
+        surgeryDuringStay: sample.data.surgeryDuringStay
+      };
+      
       // Calculate readmission risk based on factors
       const riskFactors = [
-        samplePatient.diabetes, 
-        samplePatient.hypertension, 
-        samplePatient.heartDisease,
-        samplePatient.lungDisease,
-        samplePatient.renalDisease,
-        samplePatient.ventilatorSupport,
-        samplePatient.vasopressors,
-        samplePatient.dialysis,
-        samplePatient.previousICUAdmission
+        patientData.diabetes, 
+        patientData.hypertension, 
+        patientData.heartDisease,
+        patientData.lungDisease,
+        patientData.renalDisease,
+        patientData.ventilatorSupport,
+        patientData.vasopressors,
+        patientData.dialysis,
+        patientData.previousICUAdmission
       ];
       
       const trueCount = riskFactors.filter(Boolean).length;
@@ -282,16 +313,16 @@ export const PatientDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       let adjustedRisk = baseRisk;
       
       // Age adjustment
-      if (samplePatient.age > 65) {
+      if (patientData.age > 65) {
         adjustedRisk += 0.15;
-      } else if (samplePatient.age > 45) {
+      } else if (patientData.age > 45) {
         adjustedRisk += 0.05;
       }
       
       // Length of stay adjustment
-      if (samplePatient.lengthOfStay > 10) {
+      if (patientData.lengthOfStay > 10) {
         adjustedRisk += 0.1;
-      } else if (samplePatient.lengthOfStay > 5) {
+      } else if (patientData.lengthOfStay > 5) {
         adjustedRisk += 0.05;
       }
       
@@ -299,7 +330,7 @@ export const PatientDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       adjustedRisk = Math.min(adjustedRisk, 0.95);
       
       const patientDataWithRisk = {
-        ...samplePatient,
+        ...patientData,
         readmissionRisk: adjustedRisk
       };
       
