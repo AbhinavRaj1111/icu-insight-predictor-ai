@@ -6,7 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { analyzeCSVData, parseCSV, getCSVSampleData, CSVPatientData, convertToTypedPatientData } from "@/utils/csvParser";
+import { 
+  analyzeCSVData, 
+  parseCSV, 
+  getCSVSampleData, 
+  CSVPatientData, 
+  convertToTypedPatientData,
+  createPatientDataFromCSV
+} from "@/utils/csvParser";
 import { usePatientData } from "@/contexts/PatientDataContext";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -23,6 +30,78 @@ const fetchAssistantResponse = async (prompt: string, patientData: any = null): 
     // In a real implementation, you would use an AI API here
     // For demo purposes, we simulate the response based on predefined patterns and patient context
     await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
+    
+    // General questions about healthcare
+    if (prompt.toLowerCase().includes('what is') || 
+        prompt.toLowerCase().includes('tell me about') ||
+        prompt.toLowerCase().includes('explain')) {
+      
+      if (prompt.toLowerCase().includes('icu')) {
+        return `An Intensive Care Unit (ICU) is a specialized hospital department providing intensive care medicine. ICUs cater to patients with severe and life-threatening illnesses and injuries, which require constant, close monitoring and support from specialist equipment and medications to ensure normal bodily functions.
+
+Key features of ICUs:
+- Higher nurse-to-patient ratio (typically 1:1 or 1:2)
+- Advanced monitoring equipment
+- Access to sophisticated diagnostic procedures
+- Highly trained medical staff
+- 24/7 immediate care availability
+
+ICU readmission prediction, which is what our system specializes in, aims to identify patients at risk of returning to intensive care after being discharged, allowing for preventative interventions.`;
+      }
+      
+      if (prompt.toLowerCase().includes('readmission')) {
+        return `Hospital readmission refers to when a patient who had been discharged from a hospital is admitted again within a specified time interval. Readmissions are often used as a quality metric for healthcare systems.
+
+Key facts about readmissions:
+- 30-day readmission is a common metric used for quality assessment
+- ICU readmissions are particularly concerning and often indicate complications
+- Readmissions are costly to healthcare systems and patients
+- Many readmissions are potentially preventable with proper discharge planning and follow-up care
+
+Our ML model focuses on predicting ICU readmission risk to help clinicians identify high-risk patients and implement targeted interventions to prevent unnecessary returns to intensive care.`;
+      }
+      
+      if (prompt.toLowerCase().includes('ml') || prompt.toLowerCase().includes('machine learning')) {
+        return `Machine Learning (ML) in healthcare uses algorithms and statistical models to analyze and learn from medical data to make predictions or decisions without being explicitly programmed to perform specific tasks.
+
+In the context of ICU Insight:
+- We use supervised learning models trained on historical patient data
+- Our algorithms identify patterns and risk factors associated with ICU readmissions
+- The model considers multiple variables including patient demographics, comorbidities, and treatment factors
+- Gradient boosted decision trees and logistic regression are key components of our prediction system
+- The model outputs a probability score representing readmission risk
+
+ML in healthcare must balance predictive accuracy with interpretability, as clinicians need to understand why certain predictions are made to trust and act on them effectively.`;
+      }
+      
+      if (prompt.toLowerCase().includes('diabetes') || 
+          prompt.toLowerCase().includes('heart') || 
+          prompt.toLowerCase().includes('lung') ||
+          prompt.toLowerCase().includes('disease')) {
+        
+        return `Chronic diseases like diabetes, heart disease, and lung disease significantly impact ICU readmission risk:
+
+Diabetes: Increases readmission risk by approximately 30%. Complications include:
+- Poor glycemic control during hospitalization
+- Medication management challenges
+- Higher infection rates
+- Delayed wound healing
+
+Heart Disease: Raises readmission risk by 35-50%, depending on severity. Key factors include:
+- Heart failure exacerbations
+- Arrhythmias
+- Challenges with medication titration
+- Fluid management issues
+
+Lung Disease (COPD, etc.): Increases risk by 40-60%. Contributing factors:
+- Respiratory infections
+- Difficulty weaning from ventilation
+- Pulmonary rehabilitation needs
+- Oxygen management
+
+These conditions often require careful discharge planning, medication reconciliation, and close follow-up care to prevent readmissions. Our ML model weighs these conditions heavily when calculating patient risk scores.`;
+      }
+    }
     
     // Website navigation guidance
     if (prompt.toLowerCase().includes('how to') || 
@@ -172,7 +251,14 @@ Would you like me to explain how to interpret these analytics or show a sample a
     }
     
     // Default response
-    return "I'm your ICU Insight assistant with ML capabilities. I can help you navigate the website, understand patient data analysis, interpret CSV uploads, explain our readmission prediction model, or provide clinical recommendations based on patient profiles. What would you like to know about?";
+    return "I'm your ICU Insight assistant with ML capabilities. I can help you with:
+- Understanding patient readmission risk factors
+- Interpreting ML predictions and data analysis
+- Navigating the ICU Insight platform
+- Providing clinical insights based on current research
+- Explaining healthcare concepts related to ICU care
+
+What would you like to know more about today?";
   } catch (error) {
     console.error("Error fetching AI response:", error);
     return "I'm having trouble processing your request. Please try again later.";
@@ -192,9 +278,10 @@ const AIAssistant = () => {
   const [messageInput, setMessageInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { patientData } = usePatientData();
+  const { patientData, setPatientData, generatePrediction } = usePatientData();
   const { isAuthenticated } = useAuth();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -359,6 +446,108 @@ Would you like me to explain any specific aspect of this analysis in more detail
     }, 1500);
   };
 
+  const handleCSVUpload = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    
+    if (!file) {
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    // Create a message about uploading CSV
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      content: `Uploading CSV file: ${file.name}`,
+      sender: "user",
+      timestamp: new Date(),
+    };
+    
+    setMessages((prev) => [...prev, userMessage]);
+    
+    const reader = new FileReader();
+    
+    reader.onload = async (event) => {
+      try {
+        const csvContent = event.target?.result as string;
+        
+        if (!csvContent) {
+          throw new Error("Failed to read file");
+        }
+        
+        // Parse CSV data
+        const parsedData = parseCSV(csvContent);
+        // Convert the parsed data to the required type
+        const typedData = convertToTypedPatientData(parsedData);
+        
+        // Generate analysis
+        const analysis = analyzeCSVData(typedData);
+        
+        // If there's patient data, load the first patient
+        if (typedData.length > 0) {
+          const firstPatient = typedData[0];
+          const patientData = createPatientDataFromCSV(firstPatient);
+          
+          // Set the patient data
+          setPatientData(patientData);
+          
+          // Generate prediction
+          generatePrediction(patientData);
+          
+          // Notify user
+          toast({
+            title: "CSV data processed",
+            description: `Loaded ${typedData.length} patients. First patient set for prediction.`,
+          });
+        }
+        
+        // Display analysis
+        setTimeout(() => {
+          const aiMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            content: "## CSV Data Analysis\n\n" + analysis.join('\n\n') + "\n\nI've loaded the first patient from the CSV for detailed prediction analysis. You can view the results in the Predictions page.",
+            sender: "assistant",
+            timestamp: new Date(),
+          };
+          
+          setMessages((prev) => [...prev, aiMessage]);
+          setIsLoading(false);
+        }, 2000);
+        
+      } catch (error) {
+        console.error("Error processing CSV:", error);
+        
+        const aiMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          content: "I encountered an error processing the CSV file. Please make sure it's in the correct format with the required headers: patient_id, age, gender, length_of_stay, primary_diagnosis, diabetes, hypertension, heart_disease, lung_disease, renal_disease, ventilator_support, vasopressors, dialysis, previous_icu_admission",
+          sender: "assistant",
+          timestamp: new Date(),
+        };
+        
+        setMessages((prev) => [...prev, aiMessage]);
+        setIsLoading(false);
+      }
+    };
+    
+    reader.onerror = () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to read the file. Please try again.",
+      });
+      
+      setIsLoading(false);
+    };
+    
+    reader.readAsText(file);
+  };
+
   const handleAnalyzeCSVData = () => {
     setIsLoading(true);
     
@@ -433,7 +622,7 @@ Would you like me to explain any specific aspect of this analysis in more detail
 - **Patient Form**: Go to "Input Data" page
 - **Prediction History**: Go to "Predictions" page
 - **Sample Data**: Find on the "Input Data" page
-- **Login/Signup**: Use the buttons in the top-right corner
+- **Signup**: Use the button in the top-right corner
 - **AI Assistant**: Click the assistant icon in the bottom-right corner
 
 ## How to Use CSV Uploads
@@ -515,6 +704,14 @@ Would you like more details about specific aspects of the ML model?`,
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept=".csv"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+      
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
@@ -546,6 +743,10 @@ Would you like more details about specific aspects of the ML model?`,
                 <Brain className="mr-1 h-3 w-3" />
                 Analyze Patient
               </Button>
+              <Button variant="outline" size="sm" onClick={handleCSVUpload} className="text-xs flex items-center">
+                <FileText className="mr-1 h-3 w-3" />
+                Upload CSV
+              </Button>
               <Button variant="outline" size="sm" onClick={handleAnalyzeCSVData} className="text-xs flex items-center">
                 <FileText className="mr-1 h-3 w-3" />
                 CSV Analysis
@@ -553,10 +754,6 @@ Would you like more details about specific aspects of the ML model?`,
               <Button variant="outline" size="sm" onClick={handleSiteHelpGuide} className="text-xs flex items-center">
                 <HelpCircle className="mr-1 h-3 w-3" />
                 Help Guide
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleMLModelExplanation} className="text-xs flex items-center">
-                <Brain className="mr-1 h-3 w-3" />
-                ML Model
               </Button>
             </div>
             <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>

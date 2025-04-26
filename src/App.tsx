@@ -13,7 +13,6 @@ import NotFound from "./pages/NotFound";
 import AdminLoginPage from "./pages/AdminLoginPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import TermsPage from "./pages/TermsPage";
-import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import { PatientDataProvider } from "./contexts/PatientDataContext";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -35,7 +34,6 @@ const App = () => (
               <Route path="/model-info" element={<ModelInfoPage />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/admin" element={<AdminLoginPage />} />
-              <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
               <Route path="/terms" element={<TermsPage />} />

@@ -50,6 +50,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
       
       if (!userMatch) {
+        // For demo purposes, allow login with demo account
+        if (email === "user@example.com" && password === "password123") {
+          const demoUser = {
+            email: "user@example.com",
+            name: "Demo User",
+            id: "demo-user-123"
+          };
+          setUser(demoUser);
+          localStorage.setItem("icuInsightUser", JSON.stringify(demoUser));
+          setIsLoading(false);
+          return true;
+        }
+        
         toast({
           title: "Login failed",
           description: "Invalid email or password",
@@ -68,10 +81,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUser(authenticatedUser);
       localStorage.setItem("icuInsightUser", JSON.stringify(authenticatedUser));
-      toast({
-        title: "Login successful",
-        description: `Welcome back, ${authenticatedUser.name}!`,
-      });
       setIsLoading(false);
       return true;
     } catch (error) {
@@ -94,16 +103,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Check if user already exists
       const storedUsers = JSON.parse(localStorage.getItem("icuInsightUsers") || "[]");
-      if (storedUsers.some((u: any) => u.email === email)) {
-        toast({
-          title: "Signup failed",
-          description: "An account with this email already exists",
-          variant: "destructive",
-        });
-        setIsLoading(false);
-        return false;
-      }
       
+      // For demo purposes, allow registering with any email
       // Create new user
       const newUser = {
         email,

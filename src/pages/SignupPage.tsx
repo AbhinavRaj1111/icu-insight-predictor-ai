@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { UserPlus } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const SignupPage = () => {
   const [name, setName] = useState("");
@@ -14,11 +15,13 @@ const SignupPage = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
-  const { signup, isLoading } = useAuth();
+  const [isLogin, setIsLogin] = useState(false);
+  const { signup, login, isLoading } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const validatePasswords = () => {
-    if (password !== confirmPassword) {
+    if (!isLogin && password !== confirmPassword) {
       setPasswordError("Passwords do not match");
       return false;
     }
@@ -32,11 +35,35 @@ const SignupPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!validatePasswords()) return;
     
-    const success = await signup(email, name, password);
-    if (success) {
-      navigate("/");
+    let success = false;
+    
+    if (isLogin) {
+      success = await login(email, password);
+      if (success) {
+        toast({
+          title: "Login successful",
+          description: "Welcome back to ICU Insight!",
+        });
+        navigate("/");
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Login failed",
+          description: "Please check your credentials and try again.",
+        });
+      }
+    } else {
+      success = await signup(email, name, password);
+      if (success) {
+        toast({
+          title: "Account created",
+          description: "Your account has been created successfully!",
+        });
+        navigate("/");
+      }
     }
   };
 
@@ -47,26 +74,30 @@ const SignupPage = () => {
           <CardHeader>
             <CardTitle className="text-2xl flex items-center">
               <UserPlus className="mr-2 h-6 w-6 text-medical-600" />
-              Create an Account
+              {isLogin ? "Welcome Back" : "Create an Account"}
             </CardTitle>
             <CardDescription>
-              Join ICU Insight to track patient data and predictions
+              {isLogin 
+                ? "Sign in to access your ICU Insight account" 
+                : "Join ICU Insight to track patient data and predictions"}
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="name" className="text-sm font-medium">
-                  Name
-                </label>
-                <Input
-                  id="name"
-                  placeholder="John Doe"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </div>
+              {!isLogin && (
+                <div className="space-y-2">
+                  <label htmlFor="name" className="text-sm font-medium">
+                    Name
+                  </label>
+                  <Input
+                    id="name"
+                    placeholder="John Doe"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required={!isLogin}
+                  />
+                </div>
+              )}
               <div className="space-y-2">
                 <label htmlFor="email" className="text-sm font-medium">
                   Email
@@ -93,22 +124,24 @@ const SignupPage = () => {
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <label htmlFor="confirmPassword" className="text-sm font-medium">
-                  Confirm Password
-                </label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                />
-                {passwordError && (
-                  <p className="text-xs text-destructive">{passwordError}</p>
-                )}
-              </div>
+              {!isLogin && (
+                <div className="space-y-2">
+                  <label htmlFor="confirmPassword" className="text-sm font-medium">
+                    Confirm Password
+                  </label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required={!isLogin}
+                  />
+                  {passwordError && (
+                    <p className="text-xs text-destructive">{passwordError}</p>
+                  )}
+                </div>
+              )}
             </CardContent>
             <CardFooter className="flex flex-col space-y-4">
               <Button 
@@ -116,13 +149,40 @@ const SignupPage = () => {
                 className="w-full bg-medical-600 hover:bg-medical-700"
                 disabled={isLoading}
               >
-                {isLoading ? "Creating account..." : "Create Account"}
+                {isLoading 
+                  ? (isLogin ? "Signing in..." : "Creating account...") 
+                  : (isLogin ? "Sign In" : "Create Account")}
               </Button>
               <div className="text-center text-sm">
-                Already have an account?{" "}
-                <Link to="/login" className="text-medical-600 hover:underline">
-                  Login
-                </Link>
+                {isLogin ? (
+                  <>
+                    Don't have an account?{" "}
+                    <button 
+                      type="button"
+                      onClick={() => setIsLogin(false)} 
+                      className="text-medical-600 hover:underline"
+                    >
+                      Create one
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    Already have an account?{" "}
+                    <button 
+                      type="button"
+                      onClick={() => setIsLogin(true)} 
+                      className="text-medical-600 hover:underline"
+                    >
+                      Sign in
+                    </button>
+                  </>
+                )}
+              </div>
+              
+              <div className="text-sm text-center text-gray-500 mt-2 pt-2 border-t border-gray-200">
+                <p>Demo Account:</p>
+                <p>Email: user@example.com</p>
+                <p>Password: password123</p>
               </div>
             </CardFooter>
           </form>

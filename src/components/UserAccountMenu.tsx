@@ -22,19 +22,12 @@ const UserAccountMenu = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex space-x-2">
-        <Button
-          variant="outline"
-          onClick={() => navigate("/login")}
-          className="text-medical-600 border-medical-600 hover:bg-medical-50"
-        >
-          Login
-        </Button>
+      <div className="flex">
         <Button
           onClick={() => navigate("/signup")}
           className="bg-medical-600 hover:bg-medical-700 text-white"
         >
-          Sign Up
+          Join ICU Insight
         </Button>
       </div>
     );
