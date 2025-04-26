@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
 import { usePatientData, PatientData } from "@/contexts/PatientDataContext";
-import { parseCSV, convertCSVToPatientData, analyzeCSVData } from "@/utils/csvParser";
+import { parseCSV, convertToTypedPatientData, analyzeCSVData } from "@/utils/csvParser";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, FileCheck } from "lucide-react";
 
@@ -120,21 +120,48 @@ const PatientForm = () => {
               throw new Error("No data found in the CSV file.");
             }
             
-            // Generate analysis from the CSV data
-            const analysis = analyzeCSVData(parsedData);
+            // Convert to typed data and generate analysis
+            const typedData = convertToTypedPatientData(parsedData);
+            const analysis = analyzeCSVData(typedData);
             setCsvAnalysis(analysis);
             
-            // Use the first row of data
-            const patientData = convertCSVToPatientData(parsedData[0]);
+            // Use the first row of data to create a PatientData object
+            const firstPatient = typedData[0];
+            
+            const patientData: PatientData = {
+              id: firstPatient.patient_id || `patient-${Date.now()}`,
+              age: firstPatient.age,
+              gender: firstPatient.gender,
+              lengthOfStay: firstPatient.length_of_stay,
+              primaryDiagnosis: firstPatient.primary_diagnosis,
+              diabetes: firstPatient.diabetes,
+              hypertension: firstPatient.hypertension,
+              heartDisease: firstPatient.heart_disease,
+              lungDisease: firstPatient.lung_disease,
+              renalDisease: firstPatient.renal_disease,
+              ventilatorSupport: firstPatient.ventilator_support,
+              vasopressors: firstPatient.vasopressors,
+              dialysis: firstPatient.dialysis,
+              previousICUAdmission: firstPatient.previous_icu_admission
+            };
             
             // Set form values
-            Object.entries(patientData).forEach(([key, value]) => {
-              form.setValue(key as any, value);
-            });
+            form.setValue("age", patientData.age.toString());
+            form.setValue("gender", patientData.gender.toLowerCase());
+            form.setValue("primaryDiagnosis", patientData.primaryDiagnosis);
+            form.setValue("lengthOfStay", patientData.lengthOfStay.toString());
+            form.setValue("diabetes", patientData.diabetes);
+            form.setValue("hypertension", patientData.hypertension);
+            form.setValue("heartDisease", patientData.heartDisease);
+            form.setValue("lungDisease", patientData.lungDisease);
+            form.setValue("ventilatorSupport", patientData.ventilatorSupport);
+            form.setValue("vasopressorUse", patientData.vasopressors);
             
             // Set patient data and generate prediction
             setPatientData(patientData);
-            generatePrediction(patientData);
+            if (generatePrediction) {
+              generatePrediction(patientData);
+            }
             
             setFileUploaded(true);
             
@@ -177,18 +204,18 @@ const PatientForm = () => {
       setIsLoading(true);
       
       // Create a PatientData object from form values
-      // Since we're using zod schema validation, all fields are guaranteed to have values
       const patientData: PatientData = {
-        age: values.age,
+        id: `patient-${Date.now()}`,
+        age: parseInt(values.age),
         gender: values.gender,
-        height: values.height,
-        weight: values.weight,
-        heartRate: values.heartRate,
-        bloodPressureSystolic: values.bloodPressureSystolic,
-        bloodPressureDiastolic: values.bloodPressureDiastolic,
-        respiratoryRate: values.respiratoryRate,
-        temperature: values.temperature,
-        oxygenSaturation: values.oxygenSaturation,
+        height: parseInt(values.height),
+        weight: parseInt(values.weight),
+        heartRate: parseInt(values.heartRate),
+        bloodPressureSystolic: parseInt(values.bloodPressureSystolic),
+        bloodPressureDiastolic: parseInt(values.bloodPressureDiastolic),
+        respiratoryRate: parseInt(values.respiratoryRate),
+        temperature: parseFloat(values.temperature),
+        oxygenSaturation: parseInt(values.oxygenSaturation),
         diabetes: values.diabetes,
         hypertension: values.hypertension,
         heartDisease: values.heartDisease,
@@ -197,17 +224,22 @@ const PatientForm = () => {
         cancer: values.cancer,
         immunocompromised: values.immunocompromised,
         primaryDiagnosis: values.primaryDiagnosis,
-        lengthOfStay: values.lengthOfStay,
+        lengthOfStay: parseInt(values.lengthOfStay),
         ventilatorSupport: values.ventilatorSupport,
         vasopressorUse: values.vasopressorUse,
-        surgeryDuringStay: values.surgeryDuringStay
+        surgeryDuringStay: values.surgeryDuringStay,
+        renalDisease: values.kidneyDisease,  // Map kidney disease to renal disease
+        vasopressors: values.vasopressorUse, // Map vasopressor use to vasopressors
+        previousICUAdmission: false // Default value since not in the form
       };
       
       // Set the form data to context
       setPatientData(patientData);
       
       // Generate prediction based on input data
-      generatePrediction(patientData);
+      if (generatePrediction) {
+        generatePrediction(patientData);
+      }
       
       toast({
         title: "Success",
@@ -227,6 +259,7 @@ const PatientForm = () => {
     }
   };
 
+  
   return (
     <div className="w-full max-w-4xl mx-auto">
       <div className="bg-white shadow-md rounded-lg p-6 mb-6">
@@ -285,9 +318,9 @@ const PatientForm = () => {
         <h3 className="text-lg font-medium mb-4">Enter Patient Data Manually</h3>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* ... keep existing code (demographics, vital signs, etc.) */}
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Demographics */}
+              
               <div className="space-y-4">
                 <h4 className="font-medium text-gray-900">Demographics</h4>
                 <FormField
@@ -353,7 +386,7 @@ const PatientForm = () => {
                 />
               </div>
 
-              {/* Vital Signs */}
+              
               <div className="space-y-4">
                 <h4 className="font-medium text-gray-900">Vital Signs</h4>
                 <FormField
@@ -439,7 +472,7 @@ const PatientForm = () => {
               </div>
             </div>
 
-            {/* Medical History */}
+            
             <div className="space-y-4">
               <h4 className="font-medium text-gray-900">Medical History</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -565,7 +598,7 @@ const PatientForm = () => {
               </div>
             </div>
 
-            {/* Current ICU Stay */}
+            
             <div className="space-y-4">
               <h4 className="font-medium text-gray-900">Current ICU Stay</h4>
               <FormField

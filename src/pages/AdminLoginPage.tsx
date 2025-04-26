@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Lock, Mail } from "lucide-react";
 import { usePatientData } from "@/contexts/PatientDataContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 const AdminLoginPage = () => {
   const [email, setEmail] = useState("");
@@ -16,6 +17,7 @@ const AdminLoginPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { login } = usePatientData();
+  const { login: authLogin } = useAuth();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,8 +34,13 @@ const AdminLoginPage = () => {
       return;
     }
 
-    // Attempt login
-    const success = login(email, password);
+    // Attempt login using PatientDataContext login if available, otherwise use AuthContext
+    const loginFn = login || authLogin;
+    let success = false;
+    
+    if (loginFn) {
+      success = loginFn(email, password);
+    }
     
     setTimeout(() => {
       setIsLoading(false);
@@ -97,8 +104,8 @@ const AdminLoginPage = () => {
                 
                 <div className="text-sm text-center text-gray-500 mt-4">
                   <p>Demo Credentials:</p>
-                  <p>Email: abhinavraj5025@gmail.com</p>
-                  <p>Password: 123456</p>
+                  <p>Email: admin@example.com</p>
+                  <p>Password: admin123</p>
                 </div>
               </form>
             </CardContent>

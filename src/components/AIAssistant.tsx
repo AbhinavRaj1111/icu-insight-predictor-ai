@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { analyzeCSVData, parseCSV, getCSVSampleData, CSVPatientData } from "@/utils/csvParser";
+import { analyzeCSVData, parseCSV, getCSVSampleData, CSVPatientData, convertToTypedPatientData } from "@/utils/csvParser";
 import { usePatientData } from "@/contexts/PatientDataContext";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -210,7 +210,9 @@ Recommended follow-up: ${patientData.diabetes || patientData.heartDisease ? 'Clo
       // Get sample CSV data and analyze it
       const csvContent = getCSVSampleData();
       const parsedData = parseCSV(csvContent);
-      const csvData = analyzeCSVData(parsedData as CSVPatientData[]); // Type casting the parsed data
+      // Convert the parsed data to the required type
+      const typedData = convertToTypedPatientData(parsedData);
+      const csvData = analyzeCSVData(typedData);
       
       setTimeout(() => {
         const aiMessage: Message = {

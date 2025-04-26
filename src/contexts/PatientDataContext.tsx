@@ -17,7 +17,39 @@ export interface PatientData {
   vasopressors: boolean;
   dialysis: boolean;
   previousICUAdmission: boolean;
-  readmissionRisk: number;
+  readmissionRisk?: number;
+  height?: number;
+  weight?: number;
+  heartRate?: number;
+  bloodPressureSystolic?: number;
+  bloodPressureDiastolic?: number;
+  respiratoryRate?: number;
+  temperature?: number;
+  oxygenSaturation?: number;
+  kidneyDisease?: boolean;
+  cancer?: boolean;
+  immunocompromised?: boolean;
+  vasopressorUse?: boolean;
+  surgeryDuringStay?: boolean;
+}
+
+export interface PredictionResult {
+  risk: number;
+  confidence: number;
+  predictedOutcome: string;
+  keyFactors: string[];
+  patientSummary: {
+    age: number;
+    gender: string;
+    primaryDiagnosis: string;
+    comorbidities: string[];
+    lengthOfStay: number;
+    vitals: {
+      key: string;
+      value: string;
+      status?: "normal" | "warning" | "critical";
+    }[];
+  };
 }
 
 interface PatientDataContextType {
@@ -27,6 +59,9 @@ interface PatientDataContextType {
   clearPatientData: () => void;
   loadSamplePatient: (id: string) => void;
   isAuthenticated: boolean;
+  login?: (email: string, password: string) => boolean;
+  predictionResult?: PredictionResult | null;
+  generatePrediction?: (data: PatientData) => void;
 }
 
 const PatientDataContext = createContext<PatientDataContextType | undefined>(undefined);
@@ -34,6 +69,7 @@ const PatientDataContext = createContext<PatientDataContextType | undefined>(und
 export const PatientDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [patientData, setPatientDataState] = useState<PatientData | null>(null);
   const [patientHistory, setPatientHistory] = useState<PatientData[]>([]);
+  const [predictionResult, setPredictionResult] = useState<PredictionResult | null>(null);
   const { isAuthenticated } = useAuth();
 
   // Set patient data and add to history
@@ -66,9 +102,104 @@ export const PatientDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   };
 
+  // Generate prediction based on patient data
+  const generatePrediction = (data: PatientData) => {
+    // Calculate risk factors
+    let riskFactors = [
+      data.diabetes, 
+      data.hypertension, 
+      data.heartDisease,
+      data.lungDisease,
+      data.previousICUAdmission,
+      data.ventilatorSupport,
+      data.vasopressors || data.vasopressorUse
+    ].filter(Boolean).length;
+    
+    // Base risk calculation
+    const baseRisk = 10 + (riskFactors * 10);
+    
+    // Adjust for age
+    const ageRisk = data.age > 65 ? 15 : data.age > 50 ? 8 : 0;
+    
+    // Adjust for length of stay
+    const stayRisk = data.lengthOfStay > 10 ? 15 : data.lengthOfStay > 5 ? 7 : 0;
+    
+    // Total risk (capped at 95%)
+    const risk = Math.min(baseRisk + ageRisk + stayRisk, 95);
+    
+    // Create confidence level (randomized for demo)
+    const confidence = Math.floor(70 + Math.random() * 25);
+    
+    // Set key factors
+    const keyFactors: string[] = [];
+    if (data.age > 65) keyFactors.push("Advanced age (>65)");
+    if (data.diabetes) keyFactors.push("Diabetes");
+    if (data.hypertension) keyFactors.push("Hypertension");
+    if (data.heartDisease) keyFactors.push("Heart disease");
+    if (data.lungDisease) keyFactors.push("Lung disease");
+    if (data.ventilatorSupport) keyFactors.push("Required ventilator support");
+    if (data.vasopressors || data.vasopressorUse) keyFactors.push("Required vasopressors");
+    if (data.lengthOfStay > 7) keyFactors.push(`Extended ICU stay (${data.lengthOfStay} days)`);
+    if (data.previousICUAdmission) keyFactors.push("Previous ICU admission");
+    
+    // Create predicted outcome
+    const predictedOutcome = risk > 70 
+      ? "High risk of ICU readmission within 30 days" 
+      : risk > 30 
+      ? "Moderate risk of ICU readmission within 30 days" 
+      : "Low risk of ICU readmission within 30 days";
+    
+    // Create comorbidities list
+    const comorbidities = [];
+    if (data.diabetes) comorbidities.push("Diabetes");
+    if (data.hypertension) comorbidities.push("Hypertension");
+    if (data.heartDisease) comorbidities.push("Heart Disease");
+    if (data.lungDisease) comorbidities.push("Lung Disease");
+    if (data.renalDisease) comorbidities.push("Renal Disease");
+    if (data.kidneyDisease) comorbidities.push("Kidney Disease");
+    if (data.cancer) comorbidities.push("Cancer");
+    if (data.immunocompromised) comorbidities.push("Immunocompromised");
+    
+    // Create vitals
+    const vitals = [
+      { key: "Heart Rate", value: `${data.heartRate || "N/A"} bpm` },
+      { key: "Blood Pressure", value: `${data.bloodPressureSystolic || "N/A"}/${data.bloodPressureDiastolic || "N/A"} mmHg` },
+      { key: "Respiratory Rate", value: `${data.respiratoryRate || "N/A"} bpm` },
+      { key: "Temperature", value: `${data.temperature || "N/A"} °C` },
+      { key: "Oxygen Saturation", value: `${data.oxygenSaturation || "N/A"}%` }
+    ];
+    
+    // Set the prediction result
+    setPredictionResult({
+      risk,
+      confidence,
+      predictedOutcome,
+      keyFactors,
+      patientSummary: {
+        age: data.age,
+        gender: data.gender,
+        primaryDiagnosis: data.primaryDiagnosis,
+        comorbidities,
+        lengthOfStay: data.lengthOfStay,
+        vitals
+      }
+    });
+  };
+
   // Clear current patient data
   const clearPatientData = () => {
     setPatientDataState(null);
+    setPredictionResult(null);
+  };
+
+  // Mock login function for the admin page
+  const login = (email: string, password: string): boolean => {
+    // This is a simplified login that just checks for non-empty fields
+    // In a real app, you'd validate against a database
+    if (email && password) {
+      return true;
+    }
+    return false;
   };
 
   // Load sample patient from samples
@@ -111,11 +242,16 @@ export const PatientDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       // Cap at 0.95
       adjustedRisk = Math.min(adjustedRisk, 0.95);
       
-      // Set the patient data with calculated risk
-      setPatientData({
+      const patientDataWithRisk = {
         ...samplePatient,
-        readmissionRisk: parseFloat(adjustedRisk.toFixed(2))
-      });
+        readmissionRisk: adjustedRisk
+      };
+      
+      // Set the patient data with calculated risk
+      setPatientData(patientDataWithRisk);
+      
+      // Generate prediction for the patient
+      generatePrediction(patientDataWithRisk);
     }
   };
 
@@ -126,7 +262,10 @@ export const PatientDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setPatientData, 
       clearPatientData, 
       loadSamplePatient,
-      isAuthenticated
+      isAuthenticated,
+      login,
+      predictionResult,
+      generatePrediction
     }}>
       {children}
     </PatientDataContext.Provider>
