@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Menu, X, Heart, FileInput, Info, Home, BarChart2, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import UserAccountMenu from "@/components/UserAccountMenu";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -45,13 +46,7 @@ const Navbar = () => {
             </div>
           </div>
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
-            <Button 
-              variant="outline" 
-              className="text-medical-600 border-medical-600 hover:bg-medical-50"
-              onClick={() => navigate("/admin")}
-            >
-              Admin Login
-            </Button>
+            <UserAccountMenu />
           </div>
           <div className="-mr-2 flex items-center sm:hidden">
             <Button
@@ -83,16 +78,7 @@ const Navbar = () => {
         </div>
         <div className="pt-4 pb-3 border-t border-gray-200">
           <div className="flex items-center px-4">
-            <Button 
-              variant="outline" 
-              className="w-full text-medical-600 border-medical-600 hover:bg-medical-50"
-              onClick={() => {
-                navigate("/admin");
-                setIsOpen(false);
-              }}
-            >
-              Admin Login
-            </Button>
+            <UserAccountMenu />
           </div>
         </div>
       </div>

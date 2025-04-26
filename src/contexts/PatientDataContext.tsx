@@ -1,260 +1,197 @@
 
-import { createContext, useContext, useState, ReactNode } from "react";
-import { samplePatients } from "../data/samplePatients";
+import React, { createContext, useContext, useState } from "react";
+import { useAuth } from "./AuthContext";
 
-// Define the types for patient data
 export interface PatientData {
-  // Demographics
-  age: string;
+  id: string;
+  age: number;
   gender: string;
-  height: string;
-  weight: string;
-  
-  // Vital Signs
-  heartRate: string;
-  bloodPressureSystolic: string;
-  bloodPressureDiastolic: string;
-  respiratoryRate: string;
-  temperature: string;
-  oxygenSaturation: string;
-  
-  // Medical History
+  lengthOfStay: number;
+  primaryDiagnosis: string;
   diabetes: boolean;
   hypertension: boolean;
   heartDisease: boolean;
   lungDisease: boolean;
-  kidneyDisease: boolean;
-  cancer: boolean;
-  immunocompromised: boolean;
-  
-  // Current ICU Stay
-  primaryDiagnosis: string;
-  lengthOfStay: string;
+  renalDisease: boolean;
   ventilatorSupport: boolean;
-  vasopressorUse: boolean;
-  surgeryDuringStay: boolean;
-}
-
-export interface PredictionResult {
-  risk: number;
-  confidence: number;
-  predictedOutcome: "High Risk" | "Moderate Risk" | "Low Risk";
-  keyFactors: string[];
-  patientSummary: {
-    name: string;
-    age: number;
-    gender: string;
-    vitalSigns: Array<{ name: string; value: string; unit: string; normal: boolean }>;
-    medicalHistory: Array<{ condition: string; present: boolean }>;
-    primaryDiagnosis: string;
-    lengthOfStay: number;
-    ventilatorSupport: boolean;
-    vasopressorUse: boolean;
-    surgeryDuringStay: boolean;
-  };
+  vasopressors: boolean;
+  dialysis: boolean;
+  previousICUAdmission: boolean;
+  readmissionRisk: number;
 }
 
 interface PatientDataContextType {
   patientData: PatientData | null;
-  predictionResult: PredictionResult | null;
+  patientHistory: PatientData[];
   setPatientData: (data: PatientData) => void;
-  generatePrediction: (data: PatientData) => PredictionResult;
+  clearPatientData: () => void;
   loadSamplePatient: (id: string) => void;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => boolean;
-  logout: () => void;
 }
 
 const PatientDataContext = createContext<PatientDataContextType | undefined>(undefined);
 
-export function PatientDataProvider({ children }: { children: ReactNode }) {
-  const [patientData, setPatientData] = useState<PatientData | null>(null);
-  const [predictionResult, setPredictionResult] = useState<PredictionResult | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+export const PatientDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [patientData, setPatientDataState] = useState<PatientData | null>(null);
+  const [patientHistory, setPatientHistory] = useState<PatientData[]>([]);
+  const { isAuthenticated } = useAuth();
 
-  const generatePrediction = (data: PatientData): PredictionResult => {
-    // In a real application, this would call an ML model API
-    // For now, we'll simulate prediction generation based on input factors
+  // Set patient data and add to history
+  const setPatientData = (data: PatientData) => {
+    setPatientDataState(data);
     
-    // Calculate risk based on some basic rules (this is a simplistic model for demonstration)
-    let riskScore = 0;
-    let confidenceScore = 85;
-    
-    // Age factor (older patients have higher risk)
-    const age = parseInt(data.age);
-    if (age > 65) riskScore += 20;
-    else if (age > 50) riskScore += 10;
-    
-    // Respiratory rate factor
-    const respRate = parseInt(data.respiratoryRate);
-    if (respRate > 24) riskScore += 15;
-    
-    // Length of stay factor
-    const los = parseInt(data.lengthOfStay);
-    if (los > 7) riskScore += 15;
-    else if (los > 3) riskScore += 8;
-    
-    // Medical history factors
-    if (data.diabetes) riskScore += 10;
-    if (data.hypertension) riskScore += 8;
-    if (data.heartDisease) riskScore += 12;
-    if (data.lungDisease) riskScore += 15;
-    if (data.kidneyDisease) riskScore += 10;
-    
-    // ICU interventions
-    if (data.ventilatorSupport) riskScore += 20;
-    if (data.vasopressorUse) riskScore += 15;
-    if (data.surgeryDuringStay) riskScore += 5;
-    
-    // Normalize risk score to 0-100 range
-    riskScore = Math.min(Math.max(riskScore, 0), 100);
-    
-    // Determine outcome based on risk score
-    let predictedOutcome: "High Risk" | "Moderate Risk" | "Low Risk";
-    if (riskScore >= 70) predictedOutcome = "High Risk";
-    else if (riskScore >= 30) predictedOutcome = "Moderate Risk";
-    else predictedOutcome = "Low Risk";
-    
-    // Generate key factors
-    const keyFactors: string[] = [];
-    
-    if (age > 65) keyFactors.push(`Advanced age (${age} years)`);
-    if (data.diabetes) keyFactors.push("History of diabetes");
-    if (data.hypertension) keyFactors.push("History of hypertension");
-    if (data.heartDisease) keyFactors.push("Heart disease");
-    if (data.lungDisease) keyFactors.push("Lung disease");
-    if (respRate > 24) keyFactors.push(`Elevated respiratory rate (${respRate} bpm)`);
-    if (los > 7) keyFactors.push(`Extended ICU stay (${los} days)`);
-    if (data.ventilatorSupport) keyFactors.push("Required ventilator support");
-    if (data.vasopressorUse) keyFactors.push("Required vasopressors");
-    
-    // Limit to top 5 factors if more exist
-    if (keyFactors.length > 5) {
-      keyFactors.splice(5);
-    }
-    
-    // If no key factors were identified, add a default message
-    if (keyFactors.length === 0) {
-      keyFactors.push("No significant risk factors identified");
-    }
-    
-    // Construct patient vital signs for summary
-    const vitalSigns = [
-      { 
-        name: "Heart Rate", 
-        value: data.heartRate, 
-        unit: "bpm", 
-        normal: parseInt(data.heartRate) >= 60 && parseInt(data.heartRate) <= 100 
-      },
-      { 
-        name: "Blood Pressure", 
-        value: `${data.bloodPressureSystolic}/${data.bloodPressureDiastolic}`, 
-        unit: "mmHg", 
-        normal: parseInt(data.bloodPressureSystolic) < 140 && parseInt(data.bloodPressureDiastolic) < 90 
-      },
-      { 
-        name: "Respiratory Rate", 
-        value: data.respiratoryRate, 
-        unit: "bpm", 
-        normal: parseInt(data.respiratoryRate) >= 12 && parseInt(data.respiratoryRate) <= 20 
-      },
-      { 
-        name: "Temperature", 
-        value: data.temperature, 
-        unit: "°C", 
-        normal: parseFloat(data.temperature) >= 36.5 && parseFloat(data.temperature) <= 37.5 
-      },
-      { 
-        name: "Oxygen Saturation", 
-        value: data.oxygenSaturation, 
-        unit: "%", 
-        normal: parseInt(data.oxygenSaturation) >= 95 
-      },
-    ];
-    
-    // Construct medical history for summary
-    const medicalHistory = [
-      { condition: "Diabetes", present: data.diabetes },
-      { condition: "Hypertension", present: data.hypertension },
-      { condition: "Heart Disease", present: data.heartDisease },
-      { condition: "Lung Disease", present: data.lungDisease },
-      { condition: "Kidney Disease", present: data.kidneyDisease },
-      { condition: "Cancer", present: data.cancer },
-    ];
-    
-    // Create prediction result
-    const result: PredictionResult = {
-      risk: riskScore,
-      confidence: confidenceScore,
-      predictedOutcome,
-      keyFactors,
-      patientSummary: {
-        name: "Patient", // We don't collect name in our form for privacy
-        age,
-        gender: data.gender.charAt(0).toUpperCase() + data.gender.slice(1),
-        vitalSigns,
-        medicalHistory,
-        primaryDiagnosis: data.primaryDiagnosis === "respiratory" 
-          ? "Respiratory Failure" 
-          : data.primaryDiagnosis.charAt(0).toUpperCase() + data.primaryDiagnosis.slice(1),
-        lengthOfStay: parseInt(data.lengthOfStay),
-        ventilatorSupport: data.ventilatorSupport,
-        vasopressorUse: data.vasopressorUse,
-        surgeryDuringStay: data.surgeryDuringStay,
+    // Add to history if authenticated
+    if (isAuthenticated) {
+      setPatientHistory(prev => {
+        // Check if patient already exists in history
+        const exists = prev.some(p => p.id === data.id);
+        if (!exists) {
+          return [...prev, data];
+        }
+        return prev;
+      });
+      
+      // Save to localStorage if authenticated
+      try {
+        const savedHistory = JSON.parse(localStorage.getItem("patientHistory") || "[]");
+        const exists = savedHistory.some((p: PatientData) => p.id === data.id);
+        
+        if (!exists) {
+          const updatedHistory = [...savedHistory, data];
+          localStorage.setItem("patientHistory", JSON.stringify(updatedHistory));
+        }
+      } catch (error) {
+        console.error("Error saving patient history:", error);
       }
-    };
-    
-    // Update context state
-    setPredictionResult(result);
-    
-    return result;
+    }
   };
 
-  // Function to load sample patient data
+  // Clear current patient data
+  const clearPatientData = () => {
+    setPatientDataState(null);
+  };
+
+  // Load sample patient from samples
   const loadSamplePatient = (id: string) => {
+    // Find sample patient in the sample data
     const samplePatient = samplePatients.find(patient => patient.id === id);
+    
     if (samplePatient) {
-      setPatientData(samplePatient.data);
-      generatePrediction(samplePatient.data);
+      // Calculate readmission risk based on factors
+      const riskFactors = [
+        samplePatient.diabetes, 
+        samplePatient.hypertension, 
+        samplePatient.heartDisease,
+        samplePatient.lungDisease,
+        samplePatient.renalDisease,
+        samplePatient.ventilatorSupport,
+        samplePatient.vasopressors,
+        samplePatient.dialysis,
+        samplePatient.previousICUAdmission
+      ];
+      
+      const trueCount = riskFactors.filter(Boolean).length;
+      const baseRisk = 0.1 + (trueCount * 0.05);
+      let adjustedRisk = baseRisk;
+      
+      // Age adjustment
+      if (samplePatient.age > 65) {
+        adjustedRisk += 0.15;
+      } else if (samplePatient.age > 45) {
+        adjustedRisk += 0.05;
+      }
+      
+      // Length of stay adjustment
+      if (samplePatient.lengthOfStay > 10) {
+        adjustedRisk += 0.1;
+      } else if (samplePatient.lengthOfStay > 5) {
+        adjustedRisk += 0.05;
+      }
+      
+      // Cap at 0.95
+      adjustedRisk = Math.min(adjustedRisk, 0.95);
+      
+      // Set the patient data with calculated risk
+      setPatientData({
+        ...samplePatient,
+        readmissionRisk: parseFloat(adjustedRisk.toFixed(2))
+      });
     }
-  };
-
-  // Admin authentication
-  const login = (email: string, password: string): boolean => {
-    // Simple authentication for demonstration
-    if (email === "abhinavraj5025@gmail.com" && password === "123456") {
-      setIsAuthenticated(true);
-      return true;
-    }
-    return false;
-  };
-
-  const logout = () => {
-    setIsAuthenticated(false);
   };
 
   return (
-    <PatientDataContext.Provider
-      value={{
-        patientData,
-        predictionResult,
-        setPatientData,
-        generatePrediction,
-        loadSamplePatient,
-        isAuthenticated,
-        login,
-        logout
-      }}
-    >
+    <PatientDataContext.Provider value={{ 
+      patientData, 
+      patientHistory, 
+      setPatientData, 
+      clearPatientData, 
+      loadSamplePatient,
+      isAuthenticated
+    }}>
       {children}
     </PatientDataContext.Provider>
   );
-}
+};
 
-export function usePatientData() {
+export const usePatientData = () => {
   const context = useContext(PatientDataContext);
   if (context === undefined) {
     throw new Error("usePatientData must be used within a PatientDataProvider");
   }
   return context;
-}
+};
+
+// Sample patients data
+const samplePatients = [
+  {
+    id: "sample1",
+    name: "John Smith",
+    age: 72,
+    gender: "Male",
+    lengthOfStay: 12,
+    primaryDiagnosis: "Respiratory Failure",
+    diabetes: true,
+    hypertension: true,
+    heartDisease: true,
+    lungDisease: true,
+    renalDisease: false,
+    ventilatorSupport: true,
+    vasopressors: true,
+    dialysis: false,
+    previousICUAdmission: true
+  },
+  {
+    id: "sample2",
+    name: "Sarah Johnson",
+    age: 45,
+    gender: "Female",
+    lengthOfStay: 5,
+    primaryDiagnosis: "Sepsis",
+    diabetes: false,
+    hypertension: true,
+    heartDisease: false,
+    lungDisease: false,
+    renalDisease: false,
+    ventilatorSupport: false,
+    vasopressors: true,
+    dialysis: false,
+    previousICUAdmission: false
+  },
+  {
+    id: "sample3",
+    name: "Robert Chen",
+    age: 59,
+    gender: "Male",
+    lengthOfStay: 8,
+    primaryDiagnosis: "Cardiovascular Disorder",
+    diabetes: true,
+    hypertension: true,
+    heartDisease: true,
+    lungDisease: false,
+    renalDisease: true,
+    ventilatorSupport: false,
+    vasopressors: false,
+    dialysis: true,
+    previousICUAdmission: true
+  }
+];

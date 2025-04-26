@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { analyzeCSVData, parseCSV, getCSVSampleData, CSVPatientData } from "@/utils/csvParser";
 import { usePatientData } from "@/contexts/PatientDataContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Message {
   id: string;
@@ -16,13 +17,49 @@ interface Message {
   timestamp: Date;
 }
 
-// Simple implementation of the Gemini API
-const fetchGeminiResponse = async (prompt: string): Promise<string> => {
+// Simple implementation of the AI Assistant
+const fetchAssistantResponse = async (prompt: string): Promise<string> => {
   try {
-    // In a real implementation, you would use the Gemini API here
+    // In a real implementation, you would use an AI API here
     // For demo purposes, we'll simulate the response based on predefined patterns
     await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
     
+    // Website navigation guidance
+    if (prompt.toLowerCase().includes('how to') || 
+        prompt.toLowerCase().includes('where') || 
+        prompt.toLowerCase().includes('help')) {
+      return `Here's how to use ICU Insight:
+- To input patient data: Go to the "Input Data" page from the top menu
+- To see predictions: After entering data, go to the "Predictions" page
+- To learn about the model: Visit the "Model Info" page
+- For any issues: Contact support from the "Contact" page`;
+    }
+    
+    // Data input guidance
+    if (prompt.toLowerCase().includes('input') || 
+        prompt.toLowerCase().includes('enter') || 
+        prompt.toLowerCase().includes('data')) {
+      return `To input patient data:
+1. Navigate to "Input Data" page from the main menu
+2. Fill in all required fields in the patient form
+3. You can also upload CSV files with patient data
+4. Click "Generate Prediction" when you're done
+5. You'll be taken to the Predictions page with results`;
+    }
+    
+    // CSV specific help
+    if (prompt.toLowerCase().includes('csv') || 
+        prompt.toLowerCase().includes('file') || 
+        prompt.toLowerCase().includes('upload')) {
+      return `For CSV uploads:
+1. Go to "Input Data" page
+2. Your CSV should have these headers: patient_id, age, gender, diagnosis, length_of_stay, etc.
+3. Click on "Download Sample CSV" to get the correct format
+4. Use the upload button to select your file
+5. The system will automatically parse the data`;
+    }
+    
+    // Analysis help
     if (prompt.toLowerCase().includes('analyze') || prompt.toLowerCase().includes('data')) {
       return "Based on the patient data analysis, there's a higher prevalence of respiratory conditions (28% of cases) which correlates with increased ventilator usage. Average length of stay is 8.6 days, with patients requiring vasopressors staying 25% longer on average.";
     }
@@ -35,7 +72,8 @@ const fetchGeminiResponse = async (prompt: string): Promise<string> => {
       return "For high-risk respiratory patients, consider extending monitoring post-discharge and implementing a 48-hour follow-up protocol. Early intervention for blood glucose management in diabetic patients has shown to reduce readmission rates by up to 30%.";
     }
     
-    return "I can help analyze patient data, assess readmission risks, and provide clinical recommendations. What specific aspect of the ICU data would you like insights on?";
+    // Default response
+    return "I'm your ICU Insight assistant. I can help you navigate the website, understand the patient data input process, analyze results, or provide guidance on using CSV uploads. What would you like to know about?";
   } catch (error) {
     console.error("Error fetching AI response:", error);
     return "I'm having trouble processing your request. Please try again later.";
@@ -47,7 +85,7 @@ const AIAssistant = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
-      content: "Hello! I'm your ICU Insight assistant. How can I help you analyze patient data or explain predictions?",
+      content: "Hello! I'm your ICU Insight assistant. How can I help you navigate the website, analyze patient data, or explain predictions?",
       sender: "assistant",
       timestamp: new Date(),
     },
@@ -56,6 +94,7 @@ const AIAssistant = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { patientData } = usePatientData();
+  const { isAuthenticated } = useAuth();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // Scroll to bottom when messages change
@@ -82,7 +121,7 @@ const AIAssistant = () => {
 
     try {
       // Get AI response
-      const response = await fetchGeminiResponse(messageInput);
+      const response = await fetchAssistantResponse(messageInput);
       
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -167,20 +206,75 @@ Recommended follow-up: ${patientData.diabetes || patientData.heartDisease ? 'Clo
     
     setMessages((prev) => [...prev, userMessage]);
     
-    // Get sample CSV data and analyze it
-    const csvData = analyzeCSVData(parseCSV(getCSVSampleData()));
-    
-    setTimeout(() => {
+    try {
+      // Get sample CSV data and analyze it
+      const csvContent = getCSVSampleData();
+      const parsedData = parseCSV(csvContent);
+      const csvData = analyzeCSVData(parsedData as CSVPatientData[]); // Type casting the parsed data
+      
+      setTimeout(() => {
+        const aiMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          content: "## CSV Data Analysis Results\n\n" + csvData.join('\n\n'),
+          sender: "assistant",
+          timestamp: new Date(),
+        };
+        
+        setMessages((prev) => [...prev, aiMessage]);
+        setIsLoading(false);
+      }, 1500);
+    } catch (error) {
+      console.error("Error analyzing CSV data:", error);
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: "## CSV Data Analysis Results\n\n" + csvData.join('\n\n'),
+        content: "I encountered an error while analyzing the CSV data. Please make sure the file is in the correct format.",
         sender: "assistant",
         timestamp: new Date(),
       };
       
       setMessages((prev) => [...prev, aiMessage]);
       setIsLoading(false);
-    }, 1500);
+    }
+  };
+
+  const handleSiteHelpGuide = () => {
+    setIsLoading(true);
+    
+    // Create a message about site help
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      content: "How to use this website?",
+      sender: "user",
+      timestamp: new Date(),
+    };
+    
+    setMessages((prev) => [...prev, userMessage]);
+    
+    setTimeout(() => {
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: `# ICU Insight Quick Guide
+
+## Main Features
+- **Input Data**: Enter patient information or upload CSV files
+- **Predictions**: View readmission risk predictions for patients
+- **Model Info**: Learn about how our AI model works
+- **CSV Upload**: Upload multiple patient records via CSV
+
+## Where to Find Things
+- **Patient Form**: Go to "Input Data" page
+- **Prediction History**: Go to "Predictions" page
+- **Sample Data**: Find on the "Input Data" page
+- **Login/Signup**: Use the buttons in the top-right corner
+
+Need more specific help? Just ask me!`,
+        sender: "assistant",
+        timestamp: new Date(),
+      };
+      
+      setMessages((prev) => [...prev, aiMessage]);
+      setIsLoading(false);
+    }, 1000);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -218,12 +312,15 @@ Recommended follow-up: ${patientData.diabetes || patientData.heartDisease ? 'Clo
             </Button>
           </CardHeader>
           <CardContent className="p-0 flex flex-col h-[calc(100%-4rem)]">
-            <div className="flex space-x-2 p-2 bg-gray-50 border-b">
+            <div className="flex flex-wrap gap-2 p-2 bg-gray-50 border-b">
               <Button variant="outline" size="sm" onClick={handlePatientDataAnalysis} className="text-xs">
                 Analyze Current Patient
               </Button>
               <Button variant="outline" size="sm" onClick={handleAnalyzeCSVData} className="text-xs">
                 Analyze CSV Dataset
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleSiteHelpGuide} className="text-xs">
+                Website Help
               </Button>
             </div>
             <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
@@ -243,8 +340,8 @@ Recommended follow-up: ${patientData.diabetes || patientData.heartDisease ? 'Clo
                       }`}
                     >
                       {message.content.split('\n').map((line, i) => (
-                        <p key={i} className={line.startsWith('##') ? 'font-bold text-sm mb-1' : 'text-sm'}>
-                          {line.startsWith('##') ? line.replace('##', '') : line}
+                        <p key={i} className={line.startsWith('#') ? 'font-bold text-sm mb-1' : 'text-sm'}>
+                          {line.startsWith('#') ? line.replace(/^#+\s*/, '') : line}
                         </p>
                       ))}
                       <div className="text-xs opacity-70 mt-1 text-right">
@@ -268,7 +365,7 @@ Recommended follow-up: ${patientData.diabetes || patientData.heartDisease ? 'Clo
             <div className="p-4 border-t">
               <div className="flex gap-2">
                 <Textarea
-                  placeholder="Ask a question about patient data..."
+                  placeholder="Ask a question about the website or patient data..."
                   className="resize-none"
                   value={messageInput}
                   onChange={(e) => setMessageInput(e.target.value)}

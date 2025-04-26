@@ -1,181 +1,153 @@
 
 export interface CSVPatientData {
-  age: string;
+  patient_id: string;
+  age: number;
   gender: string;
-  height: string;
-  weight: string;
-  heartRate: string;
-  bloodPressureSystolic: string;
-  bloodPressureDiastolic: string;
-  respiratoryRate: string;
-  temperature: string;
-  oxygenSaturation: string;
-  diabetes: string;
-  hypertension: string;
-  heartDisease: string;
-  lungDisease: string;
-  kidneyDisease: string;
-  cancer: string;
-  immunocompromised: string;
-  primaryDiagnosis: string;
-  lengthOfStay: string;
-  ventilatorSupport: string;
-  vasopressorUse: string;
-  surgeryDuringStay: string;
+  length_of_stay: number;
+  primary_diagnosis: string;
+  diabetes: boolean;
+  hypertension: boolean;
+  heart_disease: boolean;
+  lung_disease: boolean;
+  renal_disease: boolean;
+  ventilator_support: boolean;
+  vasopressors: boolean;
+  dialysis: boolean;
+  previous_icu_admission: boolean;
 }
 
-export const parseCSV = (csvContent: string): CSVPatientData[] => {
-  // Split the CSV content by new line
+// Parse CSV string to array of objects
+export function parseCSV(csvContent: string): Record<string, string>[] {
   const lines = csvContent.trim().split("\n");
+  const headers = lines[0].split(",").map(h => h.trim());
   
-  // Extract headers from the first line
-  const headers = lines[0].split(",").map(header => header.trim());
-  
-  // Parse each line into an object
   return lines.slice(1).map(line => {
-    const values = line.split(",").map(value => value.trim());
-    const patientData: Record<string, string> = {};
+    const values = line.split(",").map(v => v.trim());
+    const data: Record<string, string> = {};
     
-    // Map each value to its corresponding header
-    headers.forEach((header, index) => {
-      patientData[header] = values[index] || "";
+    headers.forEach((header, i) => {
+      data[header] = values[i] || "";
     });
     
-    // Ensure all required fields of CSVPatientData are present
-    const requiredFields: (keyof CSVPatientData)[] = [
-      'age', 'gender', 'height', 'weight', 'heartRate', 
-      'bloodPressureSystolic', 'bloodPressureDiastolic', 'respiratoryRate', 
-      'temperature', 'oxygenSaturation', 'diabetes', 'hypertension', 
-      'heartDisease', 'lungDisease', 'kidneyDisease', 'cancer', 
-      'immunocompromised', 'primaryDiagnosis', 'lengthOfStay', 
-      'ventilatorSupport', 'vasopressorUse', 'surgeryDuringStay'
-    ];
-    
-    // Set default empty string for any missing fields
-    requiredFields.forEach(field => {
-      if (patientData[field] === undefined) {
-        patientData[field] = "";
-      }
-    });
-    
-    // Create a new object that explicitly matches CSVPatientData interface
-    const typedPatientData: CSVPatientData = {
-      age: patientData.age || '',
-      gender: patientData.gender || '',
-      height: patientData.height || '',
-      weight: patientData.weight || '',
-      heartRate: patientData.heartRate || '',
-      bloodPressureSystolic: patientData.bloodPressureSystolic || '',
-      bloodPressureDiastolic: patientData.bloodPressureDiastolic || '',
-      respiratoryRate: patientData.respiratoryRate || '',
-      temperature: patientData.temperature || '',
-      oxygenSaturation: patientData.oxygenSaturation || '',
-      diabetes: patientData.diabetes || '',
-      hypertension: patientData.hypertension || '',
-      heartDisease: patientData.heartDisease || '',
-      lungDisease: patientData.lungDisease || '',
-      kidneyDisease: patientData.kidneyDisease || '',
-      cancer: patientData.cancer || '',
-      immunocompromised: patientData.immunocompromised || '',
-      primaryDiagnosis: patientData.primaryDiagnosis || '',
-      lengthOfStay: patientData.lengthOfStay || '',
-      ventilatorSupport: patientData.ventilatorSupport || '',
-      vasopressorUse: patientData.vasopressorUse || '',
-      surgeryDuringStay: patientData.surgeryDuringStay || ''
-    };
-    
-    return typedPatientData;
+    return data;
   });
-};
+}
 
-export const convertCSVToPatientData = (csvData: CSVPatientData) => {
-  return {
-    age: csvData.age,
-    gender: csvData.gender,
-    height: csvData.height,
-    weight: csvData.weight,
-    heartRate: csvData.heartRate,
-    bloodPressureSystolic: csvData.bloodPressureSystolic,
-    bloodPressureDiastolic: csvData.bloodPressureDiastolic,
-    respiratoryRate: csvData.respiratoryRate,
-    temperature: csvData.temperature,
-    oxygenSaturation: csvData.oxygenSaturation,
-    diabetes: csvData.diabetes === "true" || csvData.diabetes === "1",
-    hypertension: csvData.hypertension === "true" || csvData.hypertension === "1",
-    heartDisease: csvData.heartDisease === "true" || csvData.heartDisease === "1",
-    lungDisease: csvData.lungDisease === "true" || csvData.lungDisease === "1",
-    kidneyDisease: csvData.kidneyDisease === "true" || csvData.kidneyDisease === "1",
-    cancer: csvData.cancer === "true" || csvData.cancer === "1",
-    immunocompromised: csvData.immunocompromised === "true" || csvData.immunocompromised === "1",
-    primaryDiagnosis: csvData.primaryDiagnosis,
-    lengthOfStay: csvData.lengthOfStay,
-    ventilatorSupport: csvData.ventilatorSupport === "true" || csvData.ventilatorSupport === "1",
-    vasopressorUse: csvData.vasopressorUse === "true" || csvData.vasopressorUse === "1",
-    surgeryDuringStay: csvData.surgeryDuringStay === "true" || csvData.surgeryDuringStay === "1"
-  };
-};
+// Convert string values to appropriate types for patient data
+export function convertToTypedPatientData(rawData: Record<string, string>[]): CSVPatientData[] {
+  return rawData.map(row => {
+    return {
+      patient_id: row.patient_id || '',
+      age: parseInt(row.age) || 0,
+      gender: row.gender || '',
+      length_of_stay: parseInt(row.length_of_stay) || 0,
+      primary_diagnosis: row.primary_diagnosis || '',
+      diabetes: row.diabetes === "1" || row.diabetes?.toLowerCase() === "true",
+      hypertension: row.hypertension === "1" || row.hypertension?.toLowerCase() === "true",
+      heart_disease: row.heart_disease === "1" || row.heart_disease?.toLowerCase() === "true",
+      lung_disease: row.lung_disease === "1" || row.lung_disease?.toLowerCase() === "true",
+      renal_disease: row.renal_disease === "1" || row.renal_disease?.toLowerCase() === "true",
+      ventilator_support: row.ventilator_support === "1" || row.ventilator_support?.toLowerCase() === "true",
+      vasopressors: row.vasopressors === "1" || row.vasopressors?.toLowerCase() === "true",
+      dialysis: row.dialysis === "1" || row.dialysis?.toLowerCase() === "true",
+      previous_icu_admission: row.previous_icu_admission === "1" || row.previous_icu_admission?.toLowerCase() === "true"
+    };
+  });
+}
 
-// Analyze CSV data and provide insights
-export const analyzeCSVData = (csvData: CSVPatientData[]): string[] => {
-  if (!csvData || csvData.length === 0) {
+// Analyze CSV data and return insights
+export function analyzeCSVData(data: CSVPatientData[]): string[] {
+  if (!data || data.length === 0) {
     return ["No data available for analysis."];
   }
 
-  const insights: string[] = [];
-  
-  // Patient demographics analysis
-  const ageSum = csvData.reduce((sum, patient) => sum + (parseInt(patient.age) || 0), 0);
-  const avgAge = ageSum / csvData.length;
-  insights.push(`Average patient age: ${avgAge.toFixed(1)} years`);
-  
-  // Gender distribution
-  const maleCount = csvData.filter(p => p.gender.toLowerCase() === 'male').length;
-  const femaleCount = csvData.filter(p => p.gender.toLowerCase() === 'female').length;
-  insights.push(`Gender distribution: ${maleCount} male patients (${(maleCount/csvData.length*100).toFixed(1)}%), ${femaleCount} female patients (${(femaleCount/csvData.length*100).toFixed(1)}%)`);
-  
-  // Conditions analysis
-  const diabetesCount = csvData.filter(p => p.diabetes === "true" || p.diabetes === "1").length;
-  const heartDiseaseCount = csvData.filter(p => p.heartDisease === "true" || p.heartDisease === "1").length;
-  insights.push(`${diabetesCount} patients (${(diabetesCount/csvData.length*100).toFixed(1)}%) have diabetes`);
-  insights.push(`${heartDiseaseCount} patients (${(heartDiseaseCount/csvData.length*100).toFixed(1)}%) have heart disease`);
-  
-  // Length of stay analysis
-  const losSum = csvData.reduce((sum, patient) => sum + (parseInt(patient.lengthOfStay) || 0), 0);
-  const avgLOS = losSum / csvData.length;
-  insights.push(`Average length of stay: ${avgLOS.toFixed(1)} days`);
-  
-  // Ventilator and vasopressor usage
-  const ventCount = csvData.filter(p => p.ventilatorSupport === "true" || p.ventilatorSupport === "1").length;
-  const vasoCount = csvData.filter(p => p.vasopressorUse === "true" || p.vasopressorUse === "1").length;
-  insights.push(`${ventCount} patients (${(ventCount/csvData.length*100).toFixed(1)}%) required ventilator support`);
-  insights.push(`${vasoCount} patients (${(vasoCount/csvData.length*100).toFixed(1)}%) required vasopressors`);
-  
-  // Primary diagnosis distribution
-  const diagnoses = csvData.reduce((acc, patient) => {
-    const diagnosis = patient.primaryDiagnosis;
-    acc[diagnosis] = (acc[diagnosis] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-  
-  const diagnosisInsights = Object.entries(diagnoses)
-    .sort((a, b) => b[1] - a[1])
-    .map(([diagnosis, count]) => 
-      `${diagnosis}: ${count} patients (${(count/csvData.length*100).toFixed(1)}%)`
-    );
-  
-  insights.push("Primary diagnosis distribution:");
-  insights.push(...diagnosisInsights);
-  
-  return insights;
-};
+  try {
+    // Extract basic statistics
+    const patientCount = data.length;
+    
+    // Age analysis
+    const ages = data.map(p => p.age).filter(age => age > 0);
+    const avgAge = ages.length ? ages.reduce((sum, age) => sum + age, 0) / ages.length : 0;
+    const maxAge = Math.max(...ages);
+    const minAge = Math.min(...ages);
+    
+    // Gender distribution
+    const maleCount = data.filter(p => p.gender.toLowerCase() === "male").length;
+    const femaleCount = data.filter(p => p.gender.toLowerCase() === "female").length;
+    const malePercentage = (maleCount / patientCount) * 100;
+    const femalePercentage = (femaleCount / patientCount) * 100;
+    
+    // Length of stay analysis
+    const stayDays = data.map(p => p.length_of_stay);
+    const avgStay = stayDays.reduce((sum, days) => sum + days, 0) / patientCount;
+    
+    // Condition prevalence
+    const diabetesCount = data.filter(p => p.diabetes).length;
+    const hypertensionCount = data.filter(p => p.hypertension).length;
+    const heartDiseaseCount = data.filter(p => p.heart_disease).length;
+    const lungDiseaseCount = data.filter(p => p.lung_disease).length;
+    
+    // Ventilator and vasopressor usage
+    const ventilatorCount = data.filter(p => p.ventilator_support).length;
+    const vasopressorCount = data.filter(p => p.vasopressors).length;
+    
+    // Create readmission risk model (simplified)
+    const highRiskPatients = data.filter(p => {
+      let riskFactors = 0;
+      if (p.diabetes) riskFactors++;
+      if (p.hypertension) riskFactors++;
+      if (p.heart_disease) riskFactors++;
+      if (p.lung_disease) riskFactors++;
+      if (p.ventilator_support) riskFactors++;
+      if (p.previous_icu_admission) riskFactors += 2;
+      if (p.age > 65) riskFactors++;
+      return riskFactors >= 3;
+    });
+    
+    const highRiskPercentage = (highRiskPatients.length / patientCount) * 100;
 
-// Sample CSV data for testing
-export const getCSVSampleData = (): string => {
-  return `age,gender,height,weight,heartRate,bloodPressureSystolic,bloodPressureDiastolic,respiratoryRate,temperature,oxygenSaturation,diabetes,hypertension,heartDisease,lungDisease,kidneyDisease,cancer,immunocompromised,primaryDiagnosis,lengthOfStay,ventilatorSupport,vasopressorUse,surgeryDuringStay
-67,male,175,82,88,145,92,26,37.2,94,true,true,false,true,false,false,false,respiratory,9,true,false,false
-72,female,162,68,92,158,94,24,37.5,92,true,true,true,false,true,false,false,cardiovascular,12,false,true,false
-45,male,180,90,78,130,85,18,36.8,98,false,false,false,false,false,false,false,trauma,5,false,false,true
-63,female,165,74,85,142,88,22,37.0,95,true,false,false,true,false,false,false,respiratory,7,true,false,false
-55,male,178,88,76,128,82,20,36.9,97,false,true,false,false,false,false,false,sepsis,10,true,true,false`;
-};
+    // Generate insights
+    const insights = [
+      `Patient Population (${patientCount} total)`,
+      `Average age: ${avgAge.toFixed(1)} years (range: ${minAge} - ${maxAge})`,
+      `Gender distribution: ${malePercentage.toFixed(1)}% male, ${femalePercentage.toFixed(1)}% female`,
+      
+      `Hospital Stay Metrics`,
+      `Average length of stay: ${avgStay.toFixed(1)} days`,
+      
+      `Medical Conditions`,
+      `Diabetes: ${((diabetesCount / patientCount) * 100).toFixed(1)}%`,
+      `Hypertension: ${((hypertensionCount / patientCount) * 100).toFixed(1)}%`,
+      `Heart Disease: ${((heartDiseaseCount / patientCount) * 100).toFixed(1)}%`,
+      `Lung Disease: ${((lungDiseaseCount / patientCount) * 100).toFixed(1)}%`,
+      
+      `Treatment Indicators`,
+      `Ventilator support: ${((ventilatorCount / patientCount) * 100).toFixed(1)}%`,
+      `Vasopressor therapy: ${((vasopressorCount / patientCount) * 100).toFixed(1)}%`,
+      
+      `Readmission Risk Assessment`,
+      `High-risk patients: ${highRiskPercentage.toFixed(1)}% of population`,
+      `Patients needing close follow-up: ${highRiskPatients.length}`
+    ];
+    
+    return insights;
+  } catch (error) {
+    console.error("Error analyzing CSV data:", error);
+    return ["Error analyzing CSV data. Please check format and try again."];
+  }
+}
 
+// Get sample CSV data for demonstration
+export function getCSVSampleData(): string {
+  return `patient_id,age,gender,length_of_stay,primary_diagnosis,diabetes,hypertension,heart_disease,lung_disease,renal_disease,ventilator_support,vasopressors,dialysis,previous_icu_admission
+P001,72,Male,12,Respiratory Failure,1,1,1,1,0,1,1,0,1
+P002,45,Female,5,Sepsis,0,1,0,0,0,0,1,0,0
+P003,59,Male,8,Cardiovascular Disorder,1,1,1,0,1,0,0,1,1
+P004,68,Female,10,Respiratory Failure,1,1,0,1,0,1,0,0,0
+P005,51,Male,7,Trauma,0,0,0,0,0,0,1,0,0
+P006,79,Female,15,Sepsis,1,1,1,1,1,1,1,1,1
+P007,62,Male,6,Gastrointestinal Bleeding,0,1,1,0,0,0,1,0,0
+P008,55,Female,4,Acute Pancreatitis,0,0,0,0,0,0,0,0,0
+P009,83,Male,11,Pneumonia,0,1,1,1,1,1,0,0,1
+P010,49,Female,3,Diabetic Ketoacidosis,1,0,0,0,0,0,0,0,1`;
+}

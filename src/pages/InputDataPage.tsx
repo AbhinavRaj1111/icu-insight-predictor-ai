@@ -10,11 +10,13 @@ import { samplePatients } from "@/data/samplePatients";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { getCSVSampleData } from "@/utils/csvParser";
+import { useAuth } from "@/contexts/AuthContext";
 
 const InputDataPage = () => {
-  const { loadSamplePatient, isAuthenticated } = usePatientData();
+  const { loadSamplePatient } = usePatientData();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
 
   const handleLoadSample = (id: string) => {
     loadSamplePatient(id);
@@ -46,66 +48,72 @@ const InputDataPage = () => {
             Enter patient information to generate an ICU readmission prediction. Fill out the form below or upload a file
             containing patient data.
           </p>
+
+          {!isAuthenticated && (
+            <Card className="mt-4 bg-blue-50 border-blue-200">
+              <CardContent className="p-4">
+                <p className="text-sm text-blue-700">
+                  <strong>Create an account or login</strong> to save your predictions and access all features.
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </header>
 
-        {isAuthenticated && (
-          <>
-            <div className="medical-container mt-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Sample Patients</CardTitle>
-                  <CardDescription>
-                    Load sample patient data to quickly see prediction results
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {samplePatients.map((patient) => (
-                      <Button
-                        key={patient.id}
-                        variant="outline"
-                        className="p-6 h-auto flex flex-col items-center justify-center space-y-2"
-                        onClick={() => handleLoadSample(patient.id)}
-                      >
-                        <Database className="h-8 w-8 mb-2" />
-                        <span className="font-medium">{patient.name}</span>
-                        <span className="text-xs text-gray-500">Click to load</span>
-                      </Button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="medical-container mt-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Sample CSV Data</CardTitle>
-                  <CardDescription>
-                    Download a sample CSV file to see the required format
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex justify-center">
-                  <Button 
-                    variant="outline" 
+        <div className="medical-container mt-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Sample Patients</CardTitle>
+              <CardDescription>
+                Load sample patient data to quickly see prediction results
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {samplePatients.map((patient) => (
+                  <Button
+                    key={patient.id}
+                    variant="outline"
                     className="p-6 h-auto flex flex-col items-center justify-center space-y-2"
-                    onClick={handleDownloadSampleCSV}
+                    onClick={() => handleLoadSample(patient.id)}
                   >
-                    <Upload className="h-8 w-8 mb-2" />
-                    <span className="font-medium">Download Sample CSV</span>
-                    <span className="text-xs text-gray-500">Click to download</span>
+                    <Database className="h-8 w-8 mb-2" />
+                    <span className="font-medium">{patient.name}</span>
+                    <span className="text-xs text-gray-500">Click to load</span>
                   </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </>
-        )}
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="medical-container mt-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Sample CSV Data</CardTitle>
+              <CardDescription>
+                Download a sample CSV file to see the required format
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-center">
+              <Button 
+                variant="outline" 
+                className="p-6 h-auto flex flex-col items-center justify-center space-y-2"
+                onClick={handleDownloadSampleCSV}
+              >
+                <Upload className="h-8 w-8 mb-2" />
+                <span className="font-medium">Download Sample CSV</span>
+                <span className="text-xs text-gray-500">Click to download</span>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
 
         <main className="medical-container mt-8">
           <PatientForm />
         </main>
 
-        {isAuthenticated && <AIAssistant />}
+        <AIAssistant />
       </div>
     </MainLayout>
   );
