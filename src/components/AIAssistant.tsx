@@ -250,15 +250,15 @@ The prediction output combines probability scoring with confidence intervals to 
 Would you like me to explain how to interpret these analytics or show a sample analysis report?`;
     }
     
-    // Default response
-    return "I'm your ICU Insight assistant with ML capabilities. I can help you with:
+    // Default response - fix the unterminated string literal by using backticks for multiline string
+    return `I'm your ICU Insight assistant with ML capabilities. I can help you with:
 - Understanding patient readmission risk factors
 - Interpreting ML predictions and data analysis
 - Navigating the ICU Insight platform
 - Providing clinical insights based on current research
 - Explaining healthcare concepts related to ICU care
 
-What would you like to know more about today?";
+What would you like to know more about today?`;
   } catch (error) {
     console.error("Error fetching AI response:", error);
     return "I'm having trouble processing your request. Please try again later.";
